@@ -12,7 +12,7 @@ export default function ListingButtons({ onSelectCategory }) {
   };
 
   return (
-    <View className="bg-cyan-700 p-4">
+    <View className="bg-cyan-700 p-3">
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -24,7 +24,7 @@ export default function ListingButtons({ onSelectCategory }) {
               <TouchableOpacity
                 key={index}
                 onPress={() => handlePress(index)}
-                className={`m-1 items-center rounded-full px-4 py-2 ${
+                className={` items-center rounded-full px-4 py-2 ${
                   isSelected ? 'bg-cyan-700' : 'bg-white'
                 }`}>
                 <Text className={`font-medium ${isSelected ? 'text-white' : 'text-black'}`}>

@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialIcons, Feather } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import BottomTabBar from 'components/BottomTabBar';
 import { useNavigation } from '@react-navigation/native';
 import NavBar from 'components/NavBar';
 
@@ -588,16 +587,7 @@ const Explore = () => {
         </View>
       </ScrollView>
 
-      {/* Bottom Tab Bar */}
-      <BottomTabBar 
-        activeTab={activeTab} 
-        onTabPress={(tab) => {
-          setActiveTab(tab);
-          if (tab !== 'Explore') {
-            navigation.navigate(tab);
-          }
-        }} 
-      />
+      
 
       {/* Filter Modal */}
       <FilterModal

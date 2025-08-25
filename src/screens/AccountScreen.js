@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { MaterialIcons, Ionicons, Feather, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import BottomTabBar from '../../components/BottomTabBar';
 
 const Account = () => {
   const navigation = useNavigation();
@@ -13,7 +12,7 @@ const Account = () => {
     name: 'Sharah Jhon',
     email: 'shara@gmail.com',
     phone: '+947898456',
-    avatar: require('../../assets/Natalie-Taylor-Head-of-Marketing-Capsule-1024x1024.jpeg'), // Update this path
+    avatar: null, // Update this path
   };
 
   const menuSections = [
@@ -235,7 +234,7 @@ const Account = () => {
       </ScrollView>
 
       {/* Bottom Tab Bar */}
-      <BottomTabBar activeTab="Account" />
+      
     </SafeAreaView>
   );
 };

@@ -11,7 +11,6 @@ import Transport from '../subscreens/HomeScreen/Transport';
 import Food from '../subscreens/HomeScreen/FoodAndBevarage';
 import HotelCard from '../../components/homeComponents/hotelCard';
 import SlideShow from '../../components/homeComponents/SlideShow';
-import BottomTabBar from 'components/BottomTabBar';
 
 const Home = () => {
   const [selectedCategory, setSelectedCategory] = useState('Hotels');
@@ -38,7 +37,7 @@ const Home = () => {
       <Header />
 
       <ScrollView className="flex-1">
-        <TwoButtons />
+        {/* <TwoButtons /> */}
         <SlideShow />
 
         <View className="border-b border-gray-300">
@@ -50,7 +49,7 @@ const Home = () => {
         <HotelCard />
       </ScrollView>
 
-      <BottomTabBar activeTab="Home" />
+      
     </View>
   );
 }

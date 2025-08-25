@@ -8,7 +8,7 @@ const SplashScreen = () => {
   useEffect(() => {
     // Simulate loading or auth check
     const timer = setTimeout(() => {
-      navigation.replace('SignIn'); // Navigate to sign-in after splash
+      navigation.replace('Main'); // Navigate to main app with tabs
     }, 2000);
 
     return () => clearTimeout(timer);

@@ -13,7 +13,7 @@ import {
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import NavBar from 'components/NavBar';
-import BottomTabBar from 'components/BottomTabBar';
+
 
 const Saved = () => {
   const navigation = useNavigation();
@@ -474,7 +474,7 @@ const Saved = () => {
         </View>
       </Modal>
 
-      <BottomTabBar activeTab="Saved" />
+      
     </SafeAreaView>
   );
 };

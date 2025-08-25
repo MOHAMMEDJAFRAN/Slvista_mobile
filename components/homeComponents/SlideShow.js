@@ -1,26 +1,61 @@
 import React, { useState, useRef } from "react";
-import { View, Text, Dimensions, FlatList, Animated } from "react-native"; // ✅ Animated from react-native
-import { MaterialIcons, FontAwesome } from "@expo/vector-icons";
+import { View, Text, Dimensions, Animated, TouchableOpacity } from "react-native";
+import { MaterialIcons, FontAwesome, FontAwesome5 } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 const { width } = Dimensions.get("window");
 const itemsPerScreen = 4;
 const itemWidth = width / itemsPerScreen;
 
+// Updated categories as requested
 const categories = [
-  { name: "Hotels & Apartments", icon: <MaterialIcons name="hotel" size={32} color="#3b82f6" /> },
-  { name: "Home Stays", icon: <MaterialIcons name="home-work" size={32} color="#10b981" /> },
-  { name: "Activities", icon: <FontAwesome name="ticket" size={32} color="#f59e0b" /> },
-  { name: "Transport", icon: <FontAwesome name="bus" size={32} color="#ef4444" /> },
-  { name: "Food & Beverages", icon: <MaterialIcons name="restaurant" size={32} color="#8b5cf6" /> },
-  { name: "Shopping", icon: <FontAwesome name="shopping-bag" size={32} color="#ec4899" /> },
-  { name: "Events", icon: <MaterialIcons name="event" size={32} color="#06b6d4" /> },
-  { name: "License & Tour Guide", icon: <MaterialIcons name="assignment-ind" size={32} color="#14b8a6" /> },
+  { 
+    name: "Transport", 
+    icon: <FontAwesome name="bus" size={25} color="#ef4444" />,
+    page: "TransportListing"
+  },
+  { 
+    name: "Activities", 
+    icon: <FontAwesome name="ticket" size={25} color="#f59e0b" />,
+    page: "ActivitiesListing"
+  },
+  { 
+    name: "Food & Beverage", 
+    icon: <MaterialIcons name="restaurant" size={25} color="#8b5cf6" />,
+    page: "FoodBeverageListing"
+  },
+  { 
+    name: "Events", 
+    icon: <MaterialIcons name="event" size={25} color="#06b6d4" />,
+    page: "EventsListing"
+  },
+  { 
+    name: "Local Artists", 
+    icon: <FontAwesome5 name="paint-brush" size={25} color="#ec4899" />,
+    page: "LocalArtistsListing"
+  },
+  { 
+    name: "Shopping", 
+    icon: <FontAwesome name="shopping-bag" size={25} color="#14b8a6" />,
+    page: "ShoppingListing"
+  },
+  { 
+    name: "Licensed Tour Guides", 
+    icon: <MaterialIcons name="assignment-ind" size={25} color="#10b981" />,
+    page: "TourGuidesListing"
+  },
+  { 
+    name: "Other Services", 
+    icon: <MaterialIcons name="miscellaneous-services" size={25} color="#3b82f6" />,
+    page: "OtherServicesListing"
+  },
 ];
 
 export default function SlideShow() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   const slidesRef = useRef(null);
+  const navigation = useNavigation();
 
   const viewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems.length > 0) {
@@ -32,9 +67,16 @@ export default function SlideShow() {
     viewAreaCoveragePercentThreshold: 50,
   }).current;
 
+  // Function to handle category press
+  const handleCategoryPress = (pageName) => {
+    if (pageName) {
+      navigation.navigate(pageName);
+    }
+  };
+
   return (
-    <View className="mb-8">
-      <View className="bg-sky-200 p-4 rounded-xl shadow-md">
+    <View className="mb-3 mt-3">
+      <View className="bg-[#E6F6F8] p-3 mx-2 rounded-xl shadow-lg border border-[#006D77]">
         <View className="h-30">
           <Animated.FlatList
             ref={slidesRef}
@@ -51,17 +93,19 @@ export default function SlideShow() {
             onViewableItemsChanged={viewableItemsChanged}
             viewabilityConfig={viewConfig}
             renderItem={({ item }) => (
-              <View
-                className="mx-1 h-[140px] rounded-xl border border-gray-200 bg-white items-center justify-center shadow-sm"
-                style={{ width: itemWidth - 8 }}
+              <TouchableOpacity
+                onPress={() => handleCategoryPress(item.page)}
+                activeOpacity={0.7}
+                className="mx-1 h-28 rounded-xl border border-[#006D77] bg-white items-center justify-center shadow-md"
+                style={{ width: itemWidth - 10 }}
               >
-                <View className="mb-2 rounded-full bg-white p-3 shadow-md">
+                <View className="mb-2 rounded-full bg-[#E6F6F8] p-3 shadow-sm">
                   {item.icon}
                 </View>
-                <Text className="text-center text-black text-sm font-bold leading-tight px-2">
+                <Text className="text-center text-blue-900 text-xs font-semibold px-1">
                   {item.name}
                 </Text>
-              </View>
+              </TouchableOpacity>
             )}
           />
         </View>

@@ -13,7 +13,6 @@ import {
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import NavBar from 'components/NavBar';
-import BottomTabBar from 'components/BottomTabBar';
 
 const Bookings = () => {
   const navigation = useNavigation();
@@ -468,7 +467,7 @@ const Bookings = () => {
         </View>
       </Modal>
 
-      <BottomTabBar activeTab="Bookings" />
+      
     </SafeAreaView>
   );
 };
