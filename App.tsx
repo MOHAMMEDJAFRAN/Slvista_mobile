@@ -21,6 +21,14 @@ import LocalArtistsListing from "~/screens/Listing_screen/LocalArtistsListing.js
 import ShoppingListing from '~/screens/Listing_screen/ShoppingListing';
 import TourGuidesListing from '~/screens/Listing_screen/TourGuidesListing';
 import OtherServicesListing from '~/screens/Listing_screen/OtherServicesListing';
+import TransportDetails from '~/screens/Listing_screen/ListingDetailsScreens/TransportDetails';
+import ActivityDetails from '~/screens/Listing_screen/ListingDetailsScreens/ActivityDetails';
+import FoodBeverageDetails from '~/screens/Listing_screen/ListingDetailsScreens/FoodBeverageDetails';
+import EventDetails from '~/screens/Listing_screen/ListingDetailsScreens/EventDetails';
+import ArtistDetails from '~/screens/Listing_screen/ListingDetailsScreens/ArtistDetails';
+import ShoppingDetails from '~/screens/Listing_screen/ListingDetailsScreens/ShoppingDetails';
+import GuideDetails from '~/screens/Listing_screen/ListingDetailsScreens/GuideDetails';
+import ServiceDetails from '~/screens/Listing_screen/ListingDetailsScreens/ServiceDetails';
 
 import "./global.css";
 
@@ -44,6 +52,16 @@ export type RootStackParamList = {
   ShoppingListing:undefined;
   TourGuidesListing: undefined;
   OtherServicesListing: undefined;
+
+  TransportDetails: undefined;
+  ActivityDetails: undefined;
+  FoodBeverageDetails: undefined
+  EventDetails:undefined;
+  ArtistDetails: undefined;
+  ShoppingDetails: undefined;
+  GuideDetails: undefined;
+  ServiceDetails: undefined;
+  
 };
 
 export type BottomTabParamList = {
@@ -352,6 +370,18 @@ const App = () => {
             component={OtherServicesListingWithSafeArea}
             options={{ headerShown: false }} 
           />
+
+          {/* Listing Details Screens */}
+
+          <Stack.Screen name="TransportDetails" component={TransportDetails} options={{ headerShown: false }}  />
+          <Stack.Screen name="ActivityDetails" component={ActivityDetails} options={{ headerShown: false }} />
+          <Stack.Screen name="FoodBeverageDetails" component={FoodBeverageDetails} options={{ headerShown: false }} />
+          <Stack.Screen name="EventDetails" component={EventDetails} options={{ headerShown: false }} />
+          <Stack.Screen name="ArtistDetails" component={ArtistDetails} options={{ headerShown: false }} />
+          <Stack.Screen name="ShoppingDetails" component={ShoppingDetails} options={{ headerShown: false }}/>
+          <Stack.Screen name="GuideDetails" component={GuideDetails} options={{ headerShown: false }}/>
+          <Stack.Screen name="ServiceDetails" component={ServiceDetails} options={{ headerShown: false }}/>
+          
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

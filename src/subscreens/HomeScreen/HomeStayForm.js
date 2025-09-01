@@ -151,11 +151,11 @@ export default function HotelAndApartment() {
         <Text className="mb-2 text-sm font-medium text-gray-700">Traveler Type</Text>
         <TouchableOpacity
           onPress={() => setTravelerTypeOpen(!travelerTypeOpen)}
-          className="flex-row items-center justify-between rounded-full border-2 border-cyan-700 px-4 py-3 bg-white shadow-sm"
+          className="flex-row items-center justify-between rounded-full border-2 border-[#006D77] px-4 py-3 bg-white shadow-sm"
           activeOpacity={0.7}
         >
           <View className="flex-row items-center">
-            <Ionicons name="person" size={20} color="#0e7490" />
+            <Ionicons name="person" size={20} color="#006D77" />
             <Text className="ml-2 text-md font-semibold text-gray-800">
               {travelerType}
             </Text>
@@ -164,7 +164,7 @@ export default function HotelAndApartment() {
             <MaterialIcons
               name="keyboard-arrow-down"
               size={26}
-              color="#0e7490"
+              color="#006D77"
             />
           </Animated.View>
         </TouchableOpacity>
@@ -187,7 +187,7 @@ export default function HotelAndApartment() {
                 >
                   <View className="flex-row items-center">
                     <View className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center 
-                      ${travelerType === option ? 'border-cyan-600 bg-cyan-600' : 'border-gray-300'}`}>
+                      ${travelerType === option ? 'border-[#006D77] bg-[#006D77]' : 'border-gray-300'}`}>
                       {travelerType === option && (
                         <Ionicons name="checkmark" size={14} color="white" />
                       )}
@@ -204,8 +204,8 @@ export default function HotelAndApartment() {
       {/* Destination Input Box */}
       <View className="mb-5">
         <Text className="mb-2 text-sm font-medium text-gray-700">Destination / Hotel</Text>
-        <View className="flex-row items-center rounded-full border-2 border-cyan-700 bg-white px-4 py-1 shadow-sm">
-          <MaterialIcons name="location-on" size={22} color="#0e7490" />
+        <View className="flex-row items-center rounded-full border-2 border-[#006D77] bg-white px-4 py-1 shadow-sm">
+          <MaterialIcons name="location-on" size={22} color="#006D77" />
           <TextInput
             className="ml-3 text-base font-semibold text-gray-800 flex-1"
             value={destination}
@@ -221,10 +221,10 @@ export default function HotelAndApartment() {
           <Text className="mb-2 text-sm font-medium text-gray-700">Check in</Text>
           <TouchableOpacity
             onPress={() => openCalendar("checkin")}
-            className="flex-row items-center rounded-full border-2 border-cyan-700 bg-white px-4 py-3 shadow-sm"
+            className="flex-row items-center rounded-full border-2 border-[#006D77] bg-white px-4 py-3 shadow-sm"
             activeOpacity={0.7}
           >
-            <FontAwesome name="calendar" size={18} color="#0e7490" />
+            <FontAwesome name="calendar" size={18} color="#006D77" />
             <Text className="ml-3 text-base font-semibold text-gray-800">
               {checkInDate || "Select date"}
             </Text>
@@ -235,10 +235,10 @@ export default function HotelAndApartment() {
           <Text className="mb-2 text-sm font-medium text-gray-700">Check out</Text>
           <TouchableOpacity
             onPress={() => openCalendar("checkout")}
-            className="flex-row items-center rounded-full border-2 border-cyan-700 bg-white px-4 py-3 shadow-sm"
+            className="flex-row items-center rounded-full border-2 border-[#006D77] bg-white px-4 py-3 shadow-sm"
             activeOpacity={0.7}
           >
-            <FontAwesome name="calendar" size={18} color="#0e7490" />
+            <FontAwesome name="calendar" size={18} color="#006D77" />
             <Text className="ml-3 text-base font-semibold text-gray-800">
               {checkOutDate || "Select date"}
             </Text>
@@ -251,11 +251,11 @@ export default function HotelAndApartment() {
         <Text className="mb-2 text-sm font-medium text-gray-700">Guests & Rooms</Text>
         <TouchableOpacity
           onPress={openGuests}
-          className="flex-row items-center justify-between rounded-full border-2 border-cyan-700 bg-white px-4 py-3 shadow-sm"
+          className="flex-row items-center justify-between rounded-full border-2 border-[#006D77] bg-white px-4 py-3 shadow-sm"
           activeOpacity={0.7}
         >
           <View className="flex-row items-center">
-            <Ionicons name="people" size={22} color="#0e7490" />
+            <Ionicons name="people" size={22} color="#006D77" />
             <Text className="ml-3 text-base font-semibold text-gray-800">
               {getGuestsText()}
             </Text>
@@ -263,7 +263,7 @@ export default function HotelAndApartment() {
           <MaterialIcons
             name="keyboard-arrow-down"
             size={26}
-            color="#0e7490"
+            color="#006D77"
           />
         </TouchableOpacity>
       </View>
@@ -273,7 +273,7 @@ export default function HotelAndApartment() {
 
       {/* Search Hotels Button */}
       <TouchableOpacity
-        className="mt-2 items-center rounded-full bg-cyan-700 py-4 shadow-md active:opacity-80"
+        className="mt-2 items-center rounded-full bg-[#006D77] py-4 shadow-md active:opacity-80"
         activeOpacity={0.7}
       >
         <Text className="text-lg font-semibold text-white">Search Homes</Text>
@@ -296,17 +296,17 @@ export default function HotelAndApartment() {
             <View className="items-center mb-4">
               <View className="w-10 h-1 bg-gray-300 rounded-full" />
             </View>
-            <Text className="mb-4 text-xl font-bold text-cyan-700 text-center">
+            <Text className="mb-4 text-xl font-bold text-[#006D77] text-center">
               Select {showCalendar === "checkin" ? "Check-in" : "Check-out"} Date
             </Text>
             <Calendar
               onDayPress={handleDaySelect}
               minDate={getTodayDate()} // Disable previous dates
               theme={{
-                selectedDayBackgroundColor: "#0e7490",
-                todayTextColor: "#0e7490",
-                arrowColor: "#0e7490",
-                monthTextColor: "#0e7490",
+                selectedDayBackgroundColor: "#006D77",
+                todayTextColor: "#006D77",
+                arrowColor: "#006D77",
+                monthTextColor: "#006D77",
                 textDayFontWeight: '500',
                 textMonthFontWeight: 'bold',
                 textDayHeaderFontWeight: '600',
@@ -317,8 +317,8 @@ export default function HotelAndApartment() {
                 }
               }}
               markedDates={{
-                [checkInDate]: { selected: true, selectedColor: "#0e7490" },
-                [checkOutDate]: { selected: true, selectedColor: "#0891b2" },
+                [checkInDate]: { selected: true, selectedColor: "#006D77" },
+                [checkOutDate]: { selected: true, selectedColor: "#006D77" },
               }}
               // Disable month scroll for past dates
               enableSwipeMonths={true}
@@ -351,7 +351,7 @@ export default function HotelAndApartment() {
             <View className="items-center mb-4">
               <View className="w-10 h-1 bg-gray-300 rounded-full" />
             </View>
-            <Text className="mb-4 text-xl font-bold text-cyan-700 text-center">
+            <Text className="mb-4 text-xl font-bold text-[#006D77] text-center">
               Guests & Rooms
             </Text>
             
@@ -367,14 +367,14 @@ export default function HotelAndApartment() {
                   disabled={guests.adults <= 1}
                   className={`w-8 h-8 rounded-full items-center justify-center ${guests.adults <= 1 ? 'bg-gray-200' : 'bg-cyan-100'}`}
                 >
-                  <Entypo name="minus" size={16} color={guests.adults <= 1 ? "#9ca3af" : "#0e7490"} />
+                  <Entypo name="minus" size={16} color={guests.adults <= 1 ? "#9ca3af" : "#006D77"} />
                 </TouchableOpacity>
                 <Text className="mx-3 text-lg font-semibold text-gray-800">{guests.adults}</Text>
                 <TouchableOpacity 
                   onPress={() => updateGuests('adults', 1)}
                   className="w-8 h-8 rounded-full bg-cyan-100 items-center justify-center"
                 >
-                  <Entypo name="plus" size={16} color="#0e7490" />
+                  <Entypo name="plus" size={16} color="#006D77" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -391,14 +391,14 @@ export default function HotelAndApartment() {
                   disabled={guests.children <= 0}
                   className={`w-8 h-8 rounded-full items-center justify-center ${guests.children <= 0 ? 'bg-gray-200' : 'bg-cyan-100'}`}
                 >
-                  <Entypo name="minus" size={16} color={guests.children <= 0 ? "#9ca3af" : "#0e7490"} />
+                  <Entypo name="minus" size={16} color={guests.children <= 0 ? "#9ca3af" : "#006D77"} />
                 </TouchableOpacity>
                 <Text className="mx-3 text-lg font-semibold text-gray-800">{guests.children}</Text>
                 <TouchableOpacity 
                   onPress={() => updateGuests('children', 1)}
                   className="w-8 h-8 rounded-full bg-cyan-100 items-center justify-center"
                 >
-                  <Entypo name="plus" size={16} color="#0e7490" />
+                  <Entypo name="plus" size={16} color="#006D77" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -414,14 +414,14 @@ export default function HotelAndApartment() {
                   disabled={guests.rooms <= 1}
                   className={`w-8 h-8 rounded-full items-center justify-center ${guests.rooms <= 1 ? 'bg-gray-200' : 'bg-cyan-100'}`}
                 >
-                  <Entypo name="minus" size={16} color={guests.rooms <= 1 ? "#9ca3af" : "#0e7490"} />
+                  <Entypo name="minus" size={16} color={guests.rooms <= 1 ? "#9ca3af" : "#006D77"} />
                 </TouchableOpacity>
                 <Text className="mx-3 text-lg font-semibold text-gray-800">{guests.rooms}</Text>
                 <TouchableOpacity 
                   onPress={() => updateGuests('rooms', 1)}
                   className="w-8 h-8 rounded-full bg-cyan-100 items-center justify-center"
                 >
-                  <Entypo name="plus" size={16} color="#0e7490" />
+                  <Entypo name="plus" size={16} color="#006D77" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -438,21 +438,21 @@ export default function HotelAndApartment() {
                   disabled={guests.infants <= 0}
                   className={`w-8 h-8 rounded-full items-center justify-center ${guests.infants <= 0 ? 'bg-gray-200' : 'bg-cyan-100'}`}
                 >
-                  <Entypo name="minus" size={16} color={guests.infants <= 0 ? "#9ca3af" : "#0e7490"} />
+                  <Entypo name="minus" size={16} color={guests.infants <= 0 ? "#9ca3af" : "#006D77"} />
                 </TouchableOpacity>
                 <Text className="mx-3 text-lg font-semibold text-gray-800">{guests.infants}</Text>
                 <TouchableOpacity 
                   onPress={() => updateGuests('infants', 1)}
                   className="w-8 h-8 rounded-full bg-cyan-100 items-center justify-center"
                 >
-                  <Entypo name="plus" size={16} color="#0e7490" />
+                  <Entypo name="plus" size={16} color="#006D77" />
                 </TouchableOpacity>
               </View>
             </View>
 
             <TouchableOpacity
               onPress={closeGuests}
-              className="rounded-xl bg-cyan-600 py-4 active:bg-cyan-700"
+              className="rounded-xl bg-[#006D77] py-4 active:bg-cyan-700"
               activeOpacity={0.7}
             >
               <Text className="text-center text-white font-semibold">Done</Text>

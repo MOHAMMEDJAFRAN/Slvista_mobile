@@ -37,7 +37,7 @@ export default function Transport() {
       <View className="mb-5">
         <Text className="mb-2 text-sm font-medium text-gray-700">Transport Search</Text>
         <View className="flex-row items-center rounded-full border-2 border-cyan-700 bg-white px-4 py-3 shadow-sm">
-          <MaterialIcons name="directions" size={22} color="#0e7490" />
+          <MaterialIcons name="directions" size={22} color="#006D77" />
           <TextInput
             className="ml-3 flex-1 text-base font-semibold text-gray-800"
             placeholder="Where are you going?"
@@ -54,7 +54,7 @@ export default function Transport() {
       {/* Search Button */}
       <Animated.View style={{ transform: [{ scale: scaleInterpolate }] }}>
         <TouchableOpacity
-          className="items-center rounded-full bg-cyan-700 py-4 shadow-md active:opacity-80"
+          className="items-center rounded-full bg-[#006D77] py-4 shadow-md active:opacity-80"
           onPress={handleSearch}
           activeOpacity={0.7}
         >

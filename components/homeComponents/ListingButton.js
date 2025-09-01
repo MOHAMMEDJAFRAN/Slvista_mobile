@@ -12,7 +12,7 @@ export default function ListingButtons({ onSelectCategory }) {
   };
 
   return (
-    <View className="bg-cyan-700 p-3">
+    <View className="bg-[#006D77] p-3">
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -25,7 +25,7 @@ export default function ListingButtons({ onSelectCategory }) {
                 key={index}
                 onPress={() => handlePress(index)}
                 className={` items-center rounded-full px-4 py-2 ${
-                  isSelected ? 'bg-cyan-700' : 'bg-white'
+                  isSelected ? 'bg-[#006D77]' : 'bg-white'
                 }`}>
                 <Text className={`font-medium ${isSelected ? 'text-white' : 'text-black'}`}>
                   {cat}

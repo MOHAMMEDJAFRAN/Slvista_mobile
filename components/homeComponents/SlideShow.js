@@ -11,42 +11,42 @@ const itemWidth = width / itemsPerScreen;
 const categories = [
   { 
     name: "Transport", 
-    icon: <FontAwesome name="bus" size={25} color="#ef4444" />,
+    icon: <FontAwesome name="bus" size={25} color="#006D77" />,
     page: "TransportListing"
   },
   { 
     name: "Activities", 
-    icon: <FontAwesome name="ticket" size={25} color="#f59e0b" />,
+    icon: <FontAwesome name="ticket" size={25} color="#006D77" />,
     page: "ActivitiesListing"
   },
   { 
     name: "Food & Beverage", 
-    icon: <MaterialIcons name="restaurant" size={25} color="#8b5cf6" />,
+    icon: <MaterialIcons name="restaurant" size={25} color="#006D77" />,
     page: "FoodBeverageListing"
   },
   { 
     name: "Events", 
-    icon: <MaterialIcons name="event" size={25} color="#06b6d4" />,
+    icon: <MaterialIcons name="event" size={25} color="#006D77" />,
     page: "EventsListing"
   },
   { 
     name: "Local Artists", 
-    icon: <FontAwesome5 name="paint-brush" size={25} color="#ec4899" />,
+    icon: <FontAwesome5 name="paint-brush" size={25} color="#006D77" />,
     page: "LocalArtistsListing"
   },
   { 
     name: "Shopping", 
-    icon: <FontAwesome name="shopping-bag" size={25} color="#14b8a6" />,
+    icon: <FontAwesome name="shopping-bag" size={25} color="#006D77" />,
     page: "ShoppingListing"
   },
   { 
-    name: "Licensed Tour Guides", 
-    icon: <MaterialIcons name="assignment-ind" size={25} color="#10b981" />,
+    name: "Tour Guides", 
+    icon: <MaterialIcons name="assignment-ind" size={25} color="#006D77" />,
     page: "TourGuidesListing"
   },
   { 
     name: "Other Services", 
-    icon: <MaterialIcons name="miscellaneous-services" size={25} color="#3b82f6" />,
+    icon: <MaterialIcons name="miscellaneous-services" size={25} color="#006D77" />,
     page: "OtherServicesListing"
   },
 ];
@@ -102,7 +102,7 @@ export default function SlideShow() {
                 <View className="mb-2 rounded-full bg-[#E6F6F8] p-3 shadow-sm">
                   {item.icon}
                 </View>
-                <Text className="text-center text-blue-900 text-xs font-semibold px-1">
+                <Text className="text-center text-[#006D77] text-xs font-semibold px-1">
                   {item.name}
                 </Text>
               </TouchableOpacity>

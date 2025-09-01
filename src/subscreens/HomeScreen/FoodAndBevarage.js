@@ -44,7 +44,7 @@ export default function Food() {
       <View className="mb-5">
         <Text className="mb-2 text-sm font-medium text-gray-700">Food Search</Text>
         <View className="flex-row items-center rounded-full border-2 border-cyan-700 bg-white px-4 py-3 shadow-sm">
-          <MaterialIcons name="search" size={22} color="#0e7490" />
+          <MaterialIcons name="search" size={22} color="#006D77" />
           <TextInput
             className="ml-3 flex-1 text-base font-semibold text-gray-800"
             placeholder="Where are you going?"
@@ -64,7 +64,7 @@ export default function Food() {
           activeOpacity={0.7}
         >
           <View className="flex-row items-center">
-            <MaterialIcons name="restaurant" size={20} color="#0e7490" />
+            <MaterialIcons name="restaurant" size={20} color="#006D77" />
             <Text className="ml-2 text-md font-semibold text-gray-800">
               {foodType}
             </Text>
@@ -94,7 +94,7 @@ export default function Food() {
                 >
                   <View className="flex-row items-center">
                     <View className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center 
-                      ${foodType === option ? 'border-cyan-600 bg-cyan-600' : 'border-gray-300'}`}>
+                      ${foodType === option ? 'border-[#006D77] bg-[#006D77]' : 'border-gray-300'}`}>
                       {foodType === option && (
                         <MaterialIcons name="check" size={14} color="white" />
                       )}
@@ -114,7 +114,7 @@ export default function Food() {
       {/* Search Button */}
       <Animated.View style={{ transform: [{ scale: scaleInterpolate }] }}>
         <TouchableOpacity
-          className="items-center rounded-full bg-cyan-700 py-4 shadow-md active:opacity-80"
+          className="items-center rounded-full bg-[#006D77] py-4 shadow-md active:opacity-80"
           onPress={handleSearch}
           activeOpacity={0.7}
         >
