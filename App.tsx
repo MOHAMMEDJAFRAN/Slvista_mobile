@@ -29,6 +29,27 @@ import ArtistDetails from '~/screens/Listing_screen/ListingDetailsScreens/Artist
 import ShoppingDetails from '~/screens/Listing_screen/ListingDetailsScreens/ShoppingDetails';
 import GuideDetails from '~/screens/Listing_screen/ListingDetailsScreens/GuideDetails';
 import ServiceDetails from '~/screens/Listing_screen/ListingDetailsScreens/ServiceDetails';
+import AddCardPayment from '~/screens/Account_Screens/Payment_method';
+import PersonalDetailsScreen from '~/screens/Account_Screens/PersonalDetailsScreen';
+import AppPreferencesPage from '~/screens/Account_Screens/AppPreferencesScreen';
+import EmailPreferencesPage from '~/screens/Account_Screens/EmailPreferencesPage';
+import NotificationPreferencesPage from '~/screens/Account_Screens/NotificationPreferencesPage';
+
+
+import HotelView1WithSafeArea from './components/HotelView1WithSafeArea';
+import HomeView2 from '~/subscreens/HomeStays/HomeView2';
+import CustomerDetailsHotel from '~/subscreens/Hotels/CustomerDetailsHotel';
+import CustomerDetailsHome from '~/subscreens/HomeStays/CustomerDetailsHome';
+import PaymentDetailsHotel from '~/subscreens/Hotels/PaymentDetailsHotel';
+import PaymentDetailsHome from '~/subscreens/HomeStays/PaymentDetailsHome';
+import BookingConfirmationHome from '~/subscreens/HomeStays/BookingConfirmationHome';
+import BookingConfirmationHotel from '~/subscreens/Hotels/BookingConfirmationHotel';
+import Activity from '~/subscreens/SecondListings/Activity';
+import FoodAndBeverage from '~/subscreens/SecondListings/FoodAndBeverage';
+import HomeView1 from '~/subscreens/HomeStays/HomeView1';
+import RoomDetails from '~/subscreens/Hotels/RoomDetails';
+import HotelsListing from '~/subscreens/Hotels/HotelsListing';
+
 
 import "./global.css";
 
@@ -61,6 +82,26 @@ export type RootStackParamList = {
   ShoppingDetails: undefined;
   GuideDetails: undefined;
   ServiceDetails: undefined;
+
+  AddCardPayment: undefined;
+  PersonalDetailsScreen: undefined;
+  AppPreferencesPage: undefined;
+  EmailPreferencesPage: undefined;
+  NotificationPreferencesPage: undefined;
+
+  HotelView1WithSafeArea: undefined; 
+  RoomDetails: undefined;
+  CustomerDetailsHotel: undefined;
+  CustomerDetailsHome: undefined;
+  PaymentDetailsHotel: undefined;
+  PaymentDetailsHome: undefined;
+  BookingConfirmationHotel: undefined;
+  BookingConfirmationHome: undefined;
+  Activity:undefined;
+  FoodAndBeverage:undefined;
+  HomeView1:undefined;
+  HomeView2:undefined;
+  HotelsListing: undefined;
   
 };
 
@@ -173,6 +214,12 @@ const ShoppingListingWithSafeArea = () => (
   </SafeAreaWrapper>
 );
 
+const HotelsListingWithSafeArea = () => (
+  <SafeAreaWrapper>
+    <HotelsListing />
+  </SafeAreaWrapper>
+);
+
 const TourGuidesListingWithSafeArea = () => (
   <SafeAreaWrapper>
     <TourGuidesListing />
@@ -182,6 +229,30 @@ const TourGuidesListingWithSafeArea = () => (
 const OtherServicesListingWithSafeArea = () => (
   <SafeAreaWrapper>
     <OtherServicesListing />
+  </SafeAreaWrapper>
+);
+
+const RoomDetailsWithSafeArea = () => (
+  <SafeAreaWrapper>
+    <RoomDetails />
+  </SafeAreaWrapper>
+);
+
+const CustomerDetailsHotelWithSafeArea = () => (
+  <SafeAreaWrapper>
+    <CustomerDetailsHotel />
+  </SafeAreaWrapper>
+);
+
+const PaymentDetailsHotelWithSafeArea = () => (
+  <SafeAreaWrapper>
+    <PaymentDetailsHotel />
+  </SafeAreaWrapper>
+);
+
+const BookingConfirmationHotelWithSafeArea = () => (
+  <SafeAreaWrapper>
+    <BookingConfirmationHotel />
   </SafeAreaWrapper>
 );
 
@@ -381,7 +452,27 @@ const App = () => {
           <Stack.Screen name="ShoppingDetails" component={ShoppingDetails} options={{ headerShown: false }}/>
           <Stack.Screen name="GuideDetails" component={GuideDetails} options={{ headerShown: false }}/>
           <Stack.Screen name="ServiceDetails" component={ServiceDetails} options={{ headerShown: false }}/>
-          
+
+          {/* Account pages */}
+          <Stack.Screen name="AddCardPayment" component={AddCardPayment} options={{ title: 'Add Card' }}/>
+          <Stack.Screen name="PersonalDetailsScreen" component={PersonalDetailsScreen} options={{ title: 'Personal Details' }}/>
+          <Stack.Screen name="AppPreferencesPage" component={AppPreferencesPage} options={{ title: 'App Preferences' }}/>
+          <Stack.Screen name="EmailPreferencesPage" component={EmailPreferencesPage} options={{ title: 'Email Preferences' }}/>
+          <Stack.Screen name="NotificationPreferencesPage" component={NotificationPreferencesPage} options={{ title: 'Notification' }}/>
+
+          <Stack.Screen name="HotelView1WithSafeArea" component={HotelView1WithSafeArea} options={{headerShown: false}} />
+          <Stack.Screen name="RoomDetails" component={RoomDetailsWithSafeArea}  options={{headerShown: false}}/>
+          <Stack.Screen name="CustomerDetailsHotel" component={CustomerDetailsHotelWithSafeArea} options={{headerShown: false}}/>
+          <Stack.Screen name='CustomerDetailsHome' component={CustomerDetailsHome}/>
+          <Stack.Screen name="PaymentDetailsHotel" component={PaymentDetailsHotelWithSafeArea} options={{headerShown: false}}/>
+          <Stack.Screen name='PaymentDetailsHome' component={PaymentDetailsHome}/>
+          <Stack.Screen name="BookingConfirmationHotel" component={BookingConfirmationHotelWithSafeArea} options={{headerShown: false}}/>
+          <Stack.Screen name='BookingConfirmationHome' component={BookingConfirmationHome}/>
+          <Stack.Screen name="Activity" component={Activity}/>
+          <Stack.Screen name="FoodAndBeverage" component={FoodAndBeverage}/>
+          <Stack.Screen name="HomeView1" component={HomeView1}/>
+          <Stack.Screen name='HomeView2' component={HomeView2}/>
+          <Stack.Screen name='HotelsListing' component={HotelsListingWithSafeArea} options={{headerShown: false}}/>
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

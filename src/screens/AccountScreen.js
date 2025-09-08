@@ -22,7 +22,7 @@ const Account = () => {
         { 
           label: "Payment Method", 
           icon: <MaterialIcons name="payment" size={20} color="#00718F" />, 
-          action: () => navigation.navigate('PaymentMethods') 
+          action: () => navigation.navigate('AddCardPayment') 
         },
       ]
     },
@@ -32,7 +32,7 @@ const Account = () => {
         { 
           label: "Personal details", 
           icon: <FontAwesome name="user-o" size={18} color="#00718F" />, 
-          action: () => navigation.navigate('PersonalDetails') 
+          action: () => navigation.navigate('PersonalDetailsScreen') 
         },
         { 
           label: "Security settings", 
@@ -47,17 +47,17 @@ const Account = () => {
         { 
           label: "App preference", 
           icon: <Ionicons name="options" size={20} color="#00718F" />, 
-          action: () => navigation.navigate('AppPreferences') 
+          action: () => navigation.navigate('AppPreferencesPage') 
         },
         { 
           label: "Email preference", 
           icon: <MaterialIcons name="email" size={20} color="#00718F" />, 
-          action: () => navigation.navigate('EmailPreferences') 
+          action: () => navigation.navigate('EmailPreferencesPage') 
         },
         { 
           label: "Notification", 
           icon: <Ionicons name="notifications-outline" size={20} color="#00718F" />, 
-          action: () => navigation.navigate('NotificationSettings') 
+          action: () => navigation.navigate('NotificationPreferencesPage') 
         },
       ]
     },
@@ -103,7 +103,7 @@ const Account = () => {
     }
   ];
 
-  const handleEditProfile = () => navigation.navigate('EditProfile');
+  const handleEditProfile = () => navigation.navigate('PersonalDetailsScreen');
   const handleSignOut = () => {
     setIsSignedIn(false);
     console.log('User signed out');

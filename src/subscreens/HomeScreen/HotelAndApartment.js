@@ -2,10 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, Modal, TextInput, ScrollView, Animated, Dimensions } from "react-native";
 import { MaterialIcons, FontAwesome, Ionicons, Entypo } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
+import { useNavigation } from "@react-navigation/native";
 
 const { height } = Dimensions.get('window');
 
 export default function HotelAndApartment() {
+  const navigation = useNavigation();
   const [travelerTypeOpen, setTravelerTypeOpen] = useState(false);
   const [travelerType, setTravelerType] = useState("Traveler Type");
   const travelerOptions = ["Local", "International", "Business", "Leisure", "Family", "Solo"];
@@ -15,10 +17,10 @@ export default function HotelAndApartment() {
   const [checkOutDate, setCheckOutDate] = useState("");
   const [showCalendar, setShowCalendar] = useState(null);
   
-  const [destination, setDestination] = useState("Colombo, Sri Lanka");
+  const [destination, setDestination] = useState("");
   const [guestsOpen, setGuestsOpen] = useState(false);
   const [guests, setGuests] = useState({
-    adults: 2,
+    adults: 1,
     children: 0,
     rooms: 1,
     infants: 0
@@ -144,6 +146,28 @@ export default function HotelAndApartment() {
     return today.toISOString().split('T')[0];
   };
 
+  // Format date for display
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return "Select date";
+    
+    const date = new Date(dateString);
+    const options = { weekday: 'short', month: 'short', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+  };
+
+  // Handle search
+  const handleSearch = () => {
+    const searchParams = {
+      destination,
+      checkInDate,
+      checkOutDate,
+      guests,
+      travelerType
+    };
+    
+    navigation.navigate('HotelsListing', { searchParams });
+  };
+
   return (
     <View className="m-6 rounded-2xl bg-white p-5 shadow-xl border border-gray-100">
       {/* Traveler Type - Fixed Scroller Dropdown */}
@@ -226,7 +250,7 @@ export default function HotelAndApartment() {
           >
             <FontAwesome name="calendar" size={18} color="#006D77" />
             <Text className="ml-3 text-base font-semibold text-gray-800">
-              {checkInDate || "Select date"}
+              {formatDateForDisplay(checkInDate)}
             </Text>
           </TouchableOpacity>
         </View>
@@ -240,7 +264,7 @@ export default function HotelAndApartment() {
           >
             <FontAwesome name="calendar" size={18} color="#006D77" />
             <Text className="ml-3 text-base font-semibold text-gray-800">
-              {checkOutDate || "Select date"}
+              {formatDateForDisplay(checkOutDate)}
             </Text>
           </TouchableOpacity>
         </View>
@@ -275,6 +299,7 @@ export default function HotelAndApartment() {
       <TouchableOpacity
         className="mt-2 items-center rounded-full bg-[#006D77] py-4 shadow-md active:opacity-80"
         activeOpacity={0.7}
+        onPress={handleSearch}
       >
         <Text className="text-lg font-semibold text-white">Search Hotels</Text>
       </TouchableOpacity>
