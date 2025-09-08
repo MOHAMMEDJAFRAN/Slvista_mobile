@@ -1,9 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ReserveButton from 'components/ReserveButton';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
+
+// Skeleton Loader Component
+const SkeletonLoader = () => (
+  <View className="flex-1 p-4">
+    {/* Progress Steps Skeleton */}
+    <View className="mb-6 flex-row justify-between items-center px-2">
+      {[1, 2, 3].map((item) => (
+        <View key={item} className="items-center">
+          <View className="w-8 h-8 rounded-full bg-gray-300" />
+          <View className="mt-1 h-3 w-16 rounded bg-gray-300" />
+        </View>
+      ))}
+    </View>
+
+    {/* Booking Summary Skeleton */}
+    <View className="mb-6 rounded-xl bg-white p-4 shadow-lg">
+      <View className="h-6 w-40 bg-gray-300 rounded mb-3" />
+      
+      <View className="flex-row mb-4">
+        <View className="w-20 h-20 bg-gray-300 rounded-lg mr-4" />
+        <View className="flex-1 justify-between">
+          <View>
+            <View className="h-5 w-32 bg-gray-300 rounded mb-1" />
+            <View className="h-4 w-24 bg-gray-300 rounded" />
+          </View>
+          <View className="h-6 w-20 bg-gray-300 rounded" />
+        </View>
+      </View>
+      
+      {/* Dates Skeleton */}
+      <View className="flex-row justify-between mb-3 p-3 bg-gray-100 rounded-lg">
+        <View>
+          <View className="h-3 w-16 bg-gray-400 rounded mb-1" />
+          <View className="h-4 w-20 bg-gray-400 rounded" />
+        </View>
+        <View className="items-center">
+          <View className="h-3 w-12 bg-gray-400 rounded mb-1" />
+          <View className="flex-row items-center">
+            <View className="w-4 h-0.5 bg-gray-400" />
+            <View className="w-4 h-4 bg-gray-400 rounded mx-1" />
+            <View className="w-4 h-0.5 bg-gray-400" />
+          </View>
+        </View>
+        <View className="items-end">
+          <View className="h-3 w-16 bg-gray-400 rounded mb-1" />
+          <View className="h-4 w-20 bg-gray-400 rounded" />
+        </View>
+      </View>
+      
+      {/* Booking Details Skeleton */}
+      <View className="border-t border-gray-200 pt-3">
+        {[1, 2, 3, 4, 5].map((item) => (
+          <View key={item} className="flex-row justify-between mb-2">
+            <View className="h-4 w-20 bg-gray-300 rounded" />
+            <View className="h-4 w-16 bg-gray-300 rounded" />
+          </View>
+        ))}
+      </View>
+    </View>
+
+    {/* Customer Info Form Skeleton */}
+    <View className="mb-4 rounded-xl bg-white p-4 shadow-lg">
+      <View className="h-6 w-40 bg-gray-300 rounded mb-4" />
+      
+      {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+        <View key={item} className="mb-4">
+          <View className="h-4 w-24 bg-gray-300 rounded mb-2" />
+          <View className="h-12 bg-gray-200 rounded-lg" />
+        </View>
+      ))}
+    </View>
+  </View>
+);
 
 // Sample country data with flags (using emoji flags)
 const countries = [
@@ -29,6 +102,8 @@ export default function CustomerDetailsHotel() {
   const route = useRoute();
   const { room, hotel, checkInDate, checkOutDate, guests, totalPrice, nights } = route.params || {};
 
+  const [isLoading, setIsLoading] = useState(true);
+
   // Form state
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -38,6 +113,15 @@ export default function CustomerDetailsHotel() {
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('US');
   const [phoneNumber, setPhoneNumber] = useState('');
+
+  // Simulate loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Validation functions
   const isValidEmail = (email) => {
@@ -115,6 +199,15 @@ export default function CustomerDetailsHotel() {
   const originalPrice = room?.originalPrice ? room.originalPrice * nights : totalPrice;
   const discount = originalPrice - totalPrice;
   const hasDiscount = discount > 0;
+
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-100">
+        <StatusBar barStyle="dark-content" />
+        <SkeletonLoader />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-100">

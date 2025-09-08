@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, Modal, Share, Alert, TextInput } from 'react-native';
+import { View, Text, Image, ScrollView, TouchableOpacity, Modal, Share, Alert, TextInput, ActivityIndicator } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Calendar } from 'react-native-calendars';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -10,6 +10,7 @@ export default function RoomDetails() {
   const route = useRoute();
   const { room, hotel, checkInDate: initialCheckInDate, checkOutDate: initialCheckOutDate, guests } = route.params || {};
   
+  const [isLoading, setIsLoading] = useState(true);
   const [checkInDate, setCheckInDate] = useState(initialCheckInDate || null);
   const [checkOutDate, setCheckOutDate] = useState(initialCheckOutDate || null);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -77,6 +78,15 @@ export default function RoomDetails() {
       comment: 'Great location and beautiful room. The breakfast was delicious with plenty of options.',
     },
   ]);
+
+  // Simulate loading data
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500); // Simulate 1.5 second loading time
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Calculate number of nights
   const calculateNights = () => {
@@ -299,6 +309,16 @@ export default function RoomDetails() {
   };
 
   const averageRating = calculateAverageRating();
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <View className="flex-1 justify-center items-center bg-gray-100">
+        <ActivityIndicator size="large" color="#0e7490" />
+        <Text className="mt-4 text-gray-600">Loading room details...</Text>
+      </View>
+    );
+  }
 
   return (
     <View className="relative flex-1 bg-gray-100">
