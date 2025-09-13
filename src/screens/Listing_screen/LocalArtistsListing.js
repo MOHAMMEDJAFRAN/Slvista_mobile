@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Image, ScrollView, TouchableOpacity, Modal, Linking, ActivityIndicator } from "react-native";
 import { MaterialIcons, Ionicons, FontAwesome, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import { API_BASE_URL } from '@env';
 
 const LocalArtistsListing = () => {
   const navigation = useNavigation();
@@ -14,6 +16,8 @@ const LocalArtistsListing = () => {
   });
   const [filteredArtists, setFilteredArtists] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [artistsData, setArtistsData] = useState([]);
+  const [error, setError] = useState(null);
 
   // Category icons mapping
   const categoryIcons = {
@@ -22,156 +26,106 @@ const LocalArtistsListing = () => {
     "Photography": "camera",
     "Music": "music",
     "Pottery": "circle",
-    "Digital Art": "laptop",
+    "Digital Art": "digital",
     "Textile Art": "cut",
-    "Performance": "theater-masks"
+    "Performance": "theater-masks",
+    "sdfasaef": "palette" // Default icon for your API category
   };
 
-  // Sample local artists data with additional details
-  const artistsData = [
-    {
-      id: 1,
-      name: "Emma Thompson",
-      category: "Painting",
-      images: [
-        "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YXJ0aXN0fGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1541961017774-22349e4a1262?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8YXJ0aXN0fGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "Downtown Arts District",
-      rating: 4.8,
-      price: "$$$",
-      specialty: "Oil Paintings, Landscapes",
-      website: "https://emmathompsonart.com",
-      email: "emma@thompsonart.com",
-      phone: "+1 (555) 123-4567",
-      socialMedia: {
-        instagram: "@emma_artist",
-        facebook: "EmmaThompsonArt",
-        youtube: "jafran"
-      },
-      performanceDetails: {
-        duration: "2-3 hours",
-        groupSize: "Up to 10 people",
-        requirements: "Well-lit space, easels provided"
-      },
-      languages: ["English", "Spanish"],
-      cancellationPolicy: "48 hours notice for full refund",
-      performanceHistory: "Exhibited in 5 national galleries, 10+ years experience",
-      reviews: [
-        {
-          id: 1,
-          user: "Sarah Johnson",
-          rating: 5,
-          comment: "Emma's painting workshop was incredible! She's so talented and patient with beginners.",
-          date: "2023-10-15",
-          userImage: "https://randomuser.me/api/portraits/women/12.jpg"
-        }
-      ]
-    },
-    {
-      id: 2,
-      name: "Michael Rodriguez",
-      category: "Sculpture",
-      images: [
-        "https://images.unsplash.com/photo-1544168190-79c17527004f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGFydGlzdHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1501084817091-a4f3d1d19e07?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGFydGlzdHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "Riverfront Studios",
-      rating: 4.9,
-      price: "$$$$",
-      specialty: "Metal Sculptures, Abstract Art",
-      website: "https://michaelsculptures.com",
-      email: "michael@rodriguezart.com",
-      phone: "+1 (555) 234-5678",
-      socialMedia: {
-        instagram: "@michael_sculpts",
-        facebook: "MichaelRodriguezSculptures"
-      },
-      performanceDetails: {
-        duration: "3-4 hours",
-        groupSize: "Up to 8 people",
-        requirements: "Outdoor space preferred, all materials provided"
-      },
-      languages: ["English", "French"],
-      cancellationPolicy: "72 hours notice for full refund",
-      performanceHistory: "International exhibitions, public installations in 3 cities",
-      reviews: [
-        {
-          id: 1,
-          user: "David Kim",
-          rating: 5,
-          comment: "Michael's sculpture workshop was transformative. His expertise with metal is unmatched.",
-          date: "2023-10-12",
-          userImage: "https://randomuser.me/api/portraits/men/22.jpg"
-        }
-      ]
-    },
-    {
-      id: 3,
-      name: "Sophia Chen",
-      category: "Photography",
-      images: [
-        "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OXx8cGhvdG9ncmFwaGVyfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fHBob3RvZ3JhcGhlcnxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "City Center Gallery",
-      rating: 4.7,
-      price: "$$",
-      specialty: "Nature Photography, Portraits",
-      website: "https://sophiachenphotography.com",
-      email: "sophia@chenphoto.com",
-      phone: "+1 (555) 345-6789",
-      socialMedia: {
-        instagram: "@sophia_photos",
-        facebook: "SophiaChenPhotography"
-      },
-      performanceDetails: {
-        duration: "2 hours",
-        groupSize: "Up to 6 people",
-        requirements: "DSLR camera recommended but not required"
-      },
-      languages: ["English", "Mandarin"],
-      cancellationPolicy: "24 hours notice for full refund",
-      performanceHistory: "Published in National Geographic, 8 years professional experience",
-      reviews: [
-        {
-          id: 1,
-          user: "Lisa Wang",
-          rating: 5,
-          comment: "Sophia's photography workshop improved my skills dramatically. Her feedback was invaluable.",
-          date: "2023-10-10",
-          userImage: "https://randomuser.me/api/portraits/women/32.jpg"
-        }
-      ]
-    },
-    // Add more artists following the same pattern...
-  ];
+  // Fetch artists from API
+  const fetchArtists = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/local-artists`);
+      
+      if (response.data.success) {
+        // Transform API data to match your component structure
+        const transformedData = response.data.data.map(artist => ({
+          id: artist.id,
+          name: artist.name,
+          category: artist.artistTypes?.[0]?.name || "sdfasaef", // Use first artist type or default
+          images: artist.images?.map(img => img.imageUrl) || [],
+          location: artist.city || "Unknown Location",
+          rating: artist.rating || 4.5, // Default rating since API doesn't provide
+          price: "$$", // Default price
+          specialty: artist.specialization || "No specialization provided",
+          website: artist.website || "#",
+          email: artist.email || "",
+          phone: artist.phone || "",
+          socialMedia: {
+            instagram: "",
+            facebook: "",
+            youtube: ""
+          },
+          performanceDetails: {
+            duration: "2-3 hours",
+            groupSize: "Up to 10 people",
+            requirements: "Contact for details"
+          },
+          languages: ["English"],
+          cancellationPolicy: "Contact for details",
+          performanceHistory: artist.description || "No description provided",
+          reviews: [],
+          isActive: artist.isActive || true // Add active status from API, default to true
+        }));
+        
+        setArtistsData(transformedData);
+        setFilteredArtists(transformedData);
+      } else {
+        setError("Failed to fetch artists");
+      }
+    } catch (err) {
+      console.error("API Error:", err);
+      setError("Failed to load artists. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const categories = ["Painting", "Sculpture", "Photography", "Music", "Pottery", "Digital Art", "Textile Art", "Performance"];
-  const locations = ["Downtown Arts District", "Riverfront Studios", "City Center Gallery", "West End Cultural Center", "Eastside Art Collective", "North Park Creative Space"];
+  // Extract unique categories from API data
+  const getCategoriesFromData = () => {
+    const categories = new Set();
+    artistsData.forEach(artist => {
+      if (artist.category) {
+        categories.add(artist.category);
+      }
+    });
+    return Array.from(categories);
+  };
+
+  // Extract unique locations from API data
+  const getLocationsFromData = () => {
+    const locations = new Set();
+    artistsData.forEach(artist => {
+      if (artist.location && artist.location !== "Unknown Location") {
+        locations.add(artist.location);
+      }
+    });
+    return Array.from(locations);
+  };
+
+  const categories = getCategoriesFromData();
+  const locations = getLocationsFromData();
   const priceRanges = ["$", "$$", "$$$", "$$$$"];
   const sortOptions = [
     { id: "recommended", label: "Recommended", icon: "star" },
     { id: "name", label: "Name: A to Z", icon: "sort-alphabetical-ascending" },
     { id: "nameDesc", label: "Name: Z to A", icon: "sort-alphabetical-descending" },
     { id: "rating", label: "Highest Rated", icon: "sort-descending" },
-    { id: "price", label: "Price: Low to High", icon: "sort-numeric-ascending" },
-    { id: "priceDesc", label: "Price: High to Low", icon: "sort-numeric-descending" }
+    // { id: "price", label: "Price: Low to High", icon: "sort-numeric-ascending" },
+    // { id: "priceDesc", label: "Price: High to Low", icon: "sort-numeric-descending" }
   ];
 
-  // Simulate loading
+  // Fetch data on component mount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setFilteredArtists(artistsData);
-      setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    fetchArtists();
   }, []);
 
   // Apply filters whenever activeFilters changes
   useEffect(() => {
     applyFiltersToData();
-  }, [activeFilters]);
+  }, [activeFilters, artistsData]);
 
   const applyFiltersToData = () => {
     let result = [...artistsData];
@@ -300,6 +254,24 @@ const LocalArtistsListing = () => {
     );
   }
 
+  if (error) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center p-4">
+        <MaterialCommunityIcons name="alert-circle" size={48} color="#dc2626" />
+        <Text className="text-red-600 text-lg mt-4 text-center font-semibold">
+          {error}
+        </Text>
+        <TouchableOpacity 
+          onPress={fetchArtists}
+          className="mt-6 bg-[#006D77] px-6 py-3 rounded-xl flex-row items-center"
+        >
+          <Ionicons name="refresh" size={18} color="white" style={{marginRight: 8}} />
+          <Text className="text-white font-semibold">Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View className="flex-1 bg-gray-50">
       {/* Header */}
@@ -349,12 +321,26 @@ const LocalArtistsListing = () => {
               activeOpacity={0.7}
             >
               <View className="flex-row">
-                <View className="w-24 h-24 rounded-xl overflow-hidden mr-4 relative">
+                <View className="w-28 h-28 rounded-xl overflow-hidden mr-4 relative">
                   <Image 
-                    source={{ uri: item.images?.[0] }} 
+                    source={{ uri: item.images?.[0] || "https://via.placeholder.com/100x100?text=No+Image" }} 
                     className="w-full h-full"
                     resizeMode="cover"
                   />
+                  {/* Active Status Badge */}
+                  <View className="absolute top-2 left-2 flex-row">
+                    {/* Active Status Indicator */}
+                    <View className={`rounded-full px-2 py-1 flex-row items-center ${item.isActive ? 'bg-green-100' : 'bg-red-100'}`}>
+                      <Ionicons 
+                        name={item.isActive ? 'checkmark' : 'close'} 
+                        size={12} 
+                        color={item.isActive ? '#16a34a' : '#dc2626'} 
+                      />
+                      <Text className={`text-xs ml-1 ${item.isActive ? 'text-green-800' : 'text-red-800'}`}>
+                        {item.isActive ? 'Available' : 'Unavailable'}
+                      </Text>
+                    </View>
+                  </View>
                   {item.images && item.images.length > 1 && (
                     <View className="absolute bottom-2 right-2 bg-black/50 rounded-full px-2 py-1">
                       <Text className="text-white text-xs">
@@ -365,23 +351,15 @@ const LocalArtistsListing = () => {
                 </View>
                 <View className="flex-1">
                   <View className="flex-row justify-between items-start">
-                    <Text className="text-lg font-bold text-gray-800 flex-1 mr-2" numberOfLines={1}>
+                    <Text className="text-lg font-bold text-gray-800 flex-1 mr-2" numberOfLines={5}>
                       {item.name}
                     </Text>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(item.website);
-                      }}
-                      className="p-2 bg-gray-100 rounded-full"
-                    >
-                      <Feather name="external-link" size={16} color="#006D77" />
-                    </TouchableOpacity>
+                    
                   </View>
                   
                   <View className="flex-row items-center mt-1">
                     <Ionicons name="location" size={14} color="#666" />
-                    <Text className="text-gray-500 text-sm ml-1">{item.location}</Text>
+                    <Text className="text-gray-500 text-sm ml-1 mr-5">{item.location}</Text>
                   </View>
                   
                   <View className="flex-row items-center mt-2">
@@ -391,43 +369,47 @@ const LocalArtistsListing = () => {
                   <View className="flex-row justify-between items-center mt-2">
                     <View className="flex-row items-center">
                       <FontAwesome 
-                        name={categoryIcons[item.category]} 
+                        name={categoryIcons[item.category] || "palette"} 
                         size={14} 
                         color="#006D77" 
                         style={{ marginRight: 6 }}
                       />
-                      <Text className="text-gray-500 text-sm">{item.category}</Text>
+                      <Text className="text-gray-500 text-sm mr-5">{item.category}</Text>
                     </View>
-                    {renderPriceRange(item.price)}
+                    {/* {renderPriceRange(item.price)} */}
                   </View>
                   
-                  <View className="flex-row items-center mt-2">
+                  {/* <View className="flex-row items-center mt-2">
                     <Ionicons name="brush" size={14} color="#666" />
                     <Text className="text-gray-500 text-sm ml-1" numberOfLines={1}>
                       {item.specialty}
                     </Text>
-                  </View>
+                  </View> */}
                   
-                  <View className="flex-row mt-3">
-                    <TouchableOpacity 
-                      className="p-2 bg-gray-100 rounded-full mr-2"
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(`tel:${item.phone}`);
-                      }}
-                    >
-                      <Feather name="phone" size={16} color="#006D77" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      className="p-2 bg-gray-100 rounded-full mr-2"
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(`mailto:${item.email}`);
-                      }}
-                    >
-                      <Feather name="mail" size={16} color="#006D77" />
-                    </TouchableOpacity>
-                  </View>
+                  {/* <View className="flex-row mt-3">
+                    {item.phone && (
+                      <TouchableOpacity 
+                        className="p-2 bg-gray-100 rounded-full mr-2"
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          Linking.openURL(`tel:${item.phone}`);
+                        }}
+                      >
+                        <Feather name="phone" size={16} color="#006D77" />
+                      </TouchableOpacity>
+                    )}
+                    {item.email && (
+                      <TouchableOpacity 
+                        className="p-2 bg-gray-100 rounded-full mr-2"
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          Linking.openURL(`mailto:${item.email}`);
+                        }}
+                      >
+                        <Feather name="mail" size={16} color="#006D77" />
+                      </TouchableOpacity>
+                    )}
+                  </View> */}
                 </View>
               </View>
               <TouchableOpacity 
@@ -435,7 +417,7 @@ const LocalArtistsListing = () => {
                 onPress={() => handleViewDetails(item)}
                 activeOpacity={0.8}
               >
-                <Text className="text-[#006D77] font-semibold">View Details & Contact</Text>
+                <Text className="text-[#006D77] font-semibold">View Details</Text>
                 <Ionicons name="arrow-forward" size={18} color="#006D77" />
               </TouchableOpacity>
             </TouchableOpacity>
@@ -495,7 +477,7 @@ const LocalArtistsListing = () => {
                       }`}
                     >
                       <FontAwesome 
-                        name={categoryIcons[category]} 
+                        name={categoryIcons[category] || "palette"} 
                         size={14} 
                         color={activeFilters.category.includes(category) ? "white" : "#4b5563"} 
                         style={{ marginRight: 6 }}
@@ -543,7 +525,7 @@ const LocalArtistsListing = () => {
               </View>
               
               {/* Price Range Filter */}
-              <View className="mb-6">
+              {/* <View className="mb-6">
                 <Text className="text-lg font-semibold text-gray-800 mb-3">Price Range</Text>
                 <View className="flex-row flex-wrap">
                   {priceRanges.map((range) => (
@@ -568,7 +550,7 @@ const LocalArtistsListing = () => {
                     </TouchableOpacity>
                   ))}
                 </View>
-              </View>
+              </View> */}
               
               {/* Sort By Filter */}
               <View className="mb-6">

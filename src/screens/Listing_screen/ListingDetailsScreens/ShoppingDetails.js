@@ -1,14 +1,16 @@
-import React, { useState } from "react";
-import { View, Text, Image, ScrollView, TouchableOpacity, Linking, FlatList, Dimensions, Share, TextInput } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, Image, ScrollView, TouchableOpacity, Linking, FlatList, Dimensions, Share, TextInput, ActivityIndicator } from "react-native";
 import { Ionicons, MaterialIcons, Feather, MaterialCommunityIcons, FontAwesome } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import axios from "axios";
+import { API_BASE_URL } from '@env';
 
 const { width } = Dimensions.get('window');
 
 const ShoppingDetails = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { shoppingItem } = route.params;
+  const { shoppingItem: initialShoppingItem } = route.params;
   const [activeIndex, setActiveIndex] = useState(0);
   const [expandedSection, setExpandedSection] = useState(null);
   const [userReview, setUserReview] = useState("");
@@ -16,12 +18,62 @@ const ShoppingDetails = () => {
   const [userHasReviewed, setUserHasReviewed] = useState(false);
   const [reviewsToShow, setReviewsToShow] = useState(2);
   const [productsToShow, setProductsToShow] = useState(3);
+  const [shoppingItem, setShoppingItem] = useState(initialShoppingItem);
+  const [loading, setLoading] = useState(!initialShoppingItem);
+  const [error, setError] = useState(null);
 
-  // Sample images if only one image is provided
-  const images = shoppingItem.images || [shoppingItem.image];
-  
+  // Default placeholder image
+  const placeholderImage = "https://via.placeholder.com/400x300?text=No+Image+Available";
+
+  // Fetch detailed data from API
+  const fetchShoppingDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // If we already have the full item data, don't fetch again
+      if (initialShoppingItem && initialShoppingItem.description) {
+        setLoading(false);
+        return;
+      }
+      
+      // Get the item ID from the passed item or from the route params
+      const itemId = initialShoppingItem?.id || route.params?.id;
+      
+      if (!itemId) {
+        setError("No shopping item ID provided");
+        setLoading(false);
+        return;
+      }
+      
+      const response = await axios.get(`${API_BASE_URL}/api/v1/shopping/${itemId}`);
+      
+      if (response.data.success) {
+        setShoppingItem(response.data.data);
+      } else {
+        setError("Failed to fetch shopping details");
+      }
+    } catch (err) {
+      console.error("API Error:", err);
+      setError("Failed to connect to server");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!initialShoppingItem || !initialShoppingItem.description) {
+      fetchShoppingDetails();
+    }
+  }, []);
+
+  // Use images from API or fallback to placeholder
+  const images = shoppingItem?.images?.length > 0 
+    ? shoppingItem.images.map(img => img.imageUrl) 
+    : [placeholderImage];
+
   // Sample products data
-  const products = shoppingItem.products || [
+  const products = [
     { name: "Handmade Ceramic Mug", price: "$25" },
     { name: "Artisanal Soap Set", price: "$18" },
     { name: "Local Honey Jar", price: "$12" },
@@ -31,7 +83,7 @@ const ShoppingDetails = () => {
   ];
 
   // Sample reviews data with user images
-  const reviews = shoppingItem.reviews || [
+  const reviews = [
     {
       id: 1,
       user: "Sarah Johnson",
@@ -47,22 +99,6 @@ const ShoppingDetails = () => {
       comment: "Loved the unique products available. The atmosphere is pleasant and staff are friendly.",
       date: "2023-10-12",
       userImage: "https://randomuser.me/api/portraits/men/22.jpg"
-    },
-    {
-      id: 3,
-      user: "Emma Wilson",
-      rating: 5,
-      comment: "Fantastic selection of local crafts. Will definitely visit again!",
-      date: "2023-10-10",
-      userImage: "https://randomuser.me/api/portraits/women/45.jpg"
-    },
-    {
-      id: 4,
-      user: "David Brown",
-      rating: 4,
-      comment: "Great prices and quality products. Parking was a bit challenging though.",
-      date: "2023-10-08",
-      userImage: "https://randomuser.me/api/portraits/men/32.jpg"
     }
   ];
 
@@ -71,14 +107,90 @@ const ShoppingDetails = () => {
 
   // Category icons mapping
   const categoryIcons = {
-    "Shopping Mall": "shopping-cart",
-    "Local Market": "store",
-    "Fashion": "tshirt",
+    "Jewelry": "diamond",
+    "Clothing": "tshirt",
     "Electronics": "mobile",
-    "Home Goods": "home",
-    "Food Market": "shopping-basket",
-    "Antiques": "history",
-    "Sports": "futbol-o"
+    "Food": "shopping-basket",
+    "Home": "home",
+    "Sports": "futbol-o",
+    "Books": "book",
+    "Other": "shopping-cart",
+  };
+
+  // Improved image carousel with manual navigation
+  const ImageCarousel = ({ images }) => {
+    if (!images || images.length === 0) {
+      return (
+        <View className="h-72 w-full bg-gray-200 justify-center items-center">
+          <Ionicons name="image" size={48} color="#9ca3af" />
+          <Text className="text-gray-500 mt-2">No images available</Text>
+        </View>
+      );
+    }
+
+    const goToNext = () => {
+      setActiveIndex((prevIndex) => 
+        prevIndex === images.length - 1 ? 0 : prevIndex + 1
+      );
+    };
+
+    const goToPrev = () => {
+      setActiveIndex((prevIndex) => 
+        prevIndex === 0 ? images.length - 1 : prevIndex - 1
+      );
+    };
+
+    return (
+      <View className="h-72 w-full relative">
+        <Image 
+          source={{ uri: images[activeIndex] || placeholderImage }} 
+          className="w-full h-full"
+          resizeMode="cover"
+          onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
+        />
+        
+        {/* Navigation arrows */}
+        {images.length > 1 && (
+          <>
+            <TouchableOpacity 
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-2"
+              onPress={goToPrev}
+            >
+              <Ionicons name="chevron-back" size={24} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-2"
+              onPress={goToNext}
+            >
+              <Ionicons name="chevron-forward" size={24} color="white" />
+            </TouchableOpacity>
+          </>
+        )}
+        
+        {/* Image counter */}
+        {images.length > 1 && (
+          <View className="absolute top-4 right-4 bg-black/50 rounded-full px-3 py-1">
+            <Text className="text-white text-sm">
+              {activeIndex + 1}/{images.length}
+            </Text>
+          </View>
+        )}
+        
+        {/* Pagination indicators */}
+        {images.length > 1 && (
+          <View className="absolute bottom-4 flex-row justify-center w-full">
+            {images.map((_, index) => (
+              <View
+                key={index}
+                className={`h-2 w-2 rounded-full mx-1 ${
+                  index === activeIndex ? "bg-white" : "bg-gray-300"
+                }`}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
   };
 
   // Toggle section expansion
@@ -119,33 +231,22 @@ const ShoppingDetails = () => {
     );
   };
 
-  const renderPriceRange = (priceRange) => {
+  const renderPriceRange = () => {
     return (
       <View className="flex-row items-center">
-        {priceRange.split('').map((char, index) => (
-          <Text key={index} className="text-green-600 font-semibold">$</Text>
-        ))}
-        <Text className="text-gray-500 text-sm ml-1">
-          ({priceRange.length === 1 ? 'Budget' : priceRange.length === 2 ? 'Moderate' : 'Premium'})
-        </Text>
+        <Text className="text-green-600 font-semibold">$$</Text>
+        <Text className="text-gray-500 text-sm ml-1">(Moderate)</Text>
       </View>
     );
   };
 
-  const getAvailabilityColor = (status) => {
-    return status === "Open Now" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800";
+  const getAvailabilityColor = (isActive) => {
+    return isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800";
   };
 
-  const renderImageItem = ({ item }) => (
-    <View className="h-72 w-full">
-      <Image 
-        source={{ uri: item }} 
-        className="w-full h-full"
-        resizeMode="cover"
-        onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
-      />
-    </View>
-  );
+  const getAvailabilityText = (isActive) => {
+    return isActive ? "Open Now" : "Closed";
+  };
 
   const renderReviewItem = ({ item }) => (
     <View className="bg-gray-50 p-4 rounded-xl mb-4">
@@ -182,8 +283,7 @@ const ShoppingDetails = () => {
   const shareShopping = async () => {
     try {
       await Share.share({
-        message: `Check out ${shoppingItem.name} - ${shoppingItem.category} in ${shoppingItem.location}. ${shoppingItem.website || ''}`,
-        url: shoppingItem.website,
+        message: `Check out ${shoppingItem.name} - ${shoppingItem.category} in ${shoppingItem.city}, ${shoppingItem.province}.`,
         title: shoppingItem.name
       });
     } catch (error) {
@@ -192,18 +292,17 @@ const ShoppingDetails = () => {
   };
 
   const openLocationInMaps = () => {
-    const encodedLocation = encodeURIComponent(shoppingItem.location);
+    const encodedLocation = encodeURIComponent(`${shoppingItem.city}, ${shoppingItem.province}`);
     Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodedLocation}`);
   };
 
   const openDirectionsInMaps = () => {
-    const encodedLocation = encodeURIComponent(shoppingItem.location);
+    const encodedLocation = encodeURIComponent(`${shoppingItem.city}, ${shoppingItem.province}`);
     Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}`);
   };
 
-  const submitReview = ()=> {
+  const submitReview = () => {
     if (userRating > 0 && userReview.trim() !== "") {
-      // In a real app, you would send this to your backend
       alert(`Thank you for your ${userRating} star review!`);
       setUserReview("");
       setUserRating(0);
@@ -213,15 +312,62 @@ const ShoppingDetails = () => {
     }
   };
 
+  const getAvailabilityTextColor = (isActive) => {
+    return isActive ? "text-green-800" : "text-red-800";
+  };
+
   const loadMoreReviews = () => {
-    // Show 3 more reviews each time the button is clicked
     setReviewsToShow(prev => Math.min(prev + 3, reviews.length));
   };
 
   const loadMoreProducts = () => {
-    // Show 3 more products each time the button is clicked
     setProductsToShow(prev => Math.min(prev + 3, products.length));
   };
+
+  if (loading) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center">
+        <ActivityIndicator size="large" color="#006D77" />
+        <Text className="mt-4 text-gray-600">Loading shopping details...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center p-4">
+        <MaterialCommunityIcons name="alert-circle" size={48} color="#dc2626" />
+        <Text className="text-red-600 text-lg mt-4 text-center font-semibold">
+          {error}
+        </Text>
+        <Text className="text-gray-500 text-sm mt-2 text-center">
+          Please check your connection and try again
+        </Text>
+        <TouchableOpacity 
+          onPress={fetchShoppingDetails}
+          className="mt-6 bg-[#006D77] px-6 py-3 rounded-xl flex-row items-center"
+        >
+          <Ionicons name="refresh" size={18} color="white" style={{marginRight: 8}} />
+          <Text className="text-white font-semibold">Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!shoppingItem) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center">
+        <MaterialCommunityIcons name="store-remove" size={48} color="#9ca3af" />
+        <Text className="text-gray-500 text-lg mt-4">Shopping destination not found</Text>
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()}
+          className="mt-6 bg-[#006D77] px-6 py-3 rounded-xl"
+        >
+          <Text className="text-white font-semibold">Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -232,48 +378,31 @@ const ShoppingDetails = () => {
         </TouchableOpacity>
         <Text className="text-white text-xl font-bold">Shopping Details</Text>
         <TouchableOpacity onPress={shareShopping} className="p-2">
-          <Ionicons name="share-social" size= {24} color="white" />
+          <Ionicons name="share-social" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Image Carousel */}
-        <View className="relative">
-          <FlatList
-            data={images}
-            renderItem={renderImageItem}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item, index) => index.toString()}
-            onMomentumScrollEnd={(event) => {
-              const index = Math.floor(event.nativeEvent.contentOffset.x / width);
-              setActiveIndex(index);
-            }}
-          />
-          {/* Image counter */}
-          {images.length > 1 && (
-            <View className="absolute top-4 right-4 bg-black/50 rounded-full px-3 py-1">
-              <Text className="text-white text-sm">
-                {activeIndex + 1}/{images.length}
-              </Text>
-            </View>
-          )}
-          {/* Pagination indicators */}
-          {images.length > 1 && (
-            <View className="absolute bottom-4 flex-row justify-center w-full">
-              {images.map((_, index) => (
-                <View
-                  key={index}
-                  className={`h-2 w-2 rounded-full mx-1 ${
-                    index === activeIndex ? "bg-white" : "bg-gray-300"
-                  }`}
-                />
-              ))}
-            </View>
-          )}
-        </View>
+        <ImageCarousel images={images} />
+        {/* Status badges */}
+      <View className="absolute top-2 left-2 flex-row">
+        {/* Active Status badge */}
+        {shoppingItem.isActive !== undefined && (
+          <View className={`rounded-full px-2 py-1 flex-row items-center mr-2 ${shoppingItem.isActive ? 'bg-green-500' : 'bg-red-500'}`}>
+            <Ionicons 
+              name={shoppingItem.isActive ? 'checkmark' : 'close'} 
+              size={12} 
+              color="white" 
+            />
+            <Text className="text-white text-xs ml-1">
+              {shoppingItem.isActive ? 'Available' : 'Uavailable'}
+            </Text>
+          </View>
+        )}
+      </View>
 
+        
         {/* Details */}
         <View className="p-5 bg-white rounded-t-3xl -mt-6">
           <View className="flex-row justify-between items-start">
@@ -281,59 +410,60 @@ const ShoppingDetails = () => {
               <Text className="text-2xl font-bold text-gray-800">{shoppingItem.name}</Text>
               <View className="flex-row items-center mt-2">
                 <FontAwesome 
-                  name={categoryIcons[shoppingItem.category]} 
+                  name={categoryIcons[shoppingItem.category] || "shopping-cart"} 
                   size={16} 
                   color="#006D77" 
                 />
-                <Text className="text-[#006D77] text-sm ml-2 font-medium">{shoppingItem.category}</Text>
+                <Text className="text-[#006D77] text-sm ml-2 font-medium">
+                  {shoppingItem.category || "Other"}
+                </Text>
               </View>
             </View>
-            <View className="bg-[#E6F6F8] px-3 py-1 rounded-full">
-              {renderPriceRange(shoppingItem.priceRange)}
-            </View>
+            {/* <View className="bg-[#E6F6F8] px-3 py-1 rounded-full">
+              {renderPriceRange()}
+            </View> */}
           </View>
           
           <View className="mt-4">
-            {renderStars(shoppingItem.rating)}
+            {renderStars(4.0)}
           </View>
           
           {/* Availability and Hours */}
           <View className="mt-4 p-3 bg-gray-50 rounded-xl">
             <View className="flex-row items-center justify-between">
-              <View className={`rounded-full px-3 py-1 ${getAvailabilityColor(shoppingItem.availability)}`}>
-                <Text className="text-xs font-medium">{shoppingItem.availability}</Text>
+              <View className={`rounded-full px-3 py-1 ${getAvailabilityColor(shoppingItem.isActive)}`}>
+                <Text className={`text-xs font-medium ${getAvailabilityTextColor(shoppingItem.isActive)}`}>
+                  {getAvailabilityText(shoppingItem.isActive)}
+                </Text>
               </View>
-              <Text className="text-gray-800 font-medium">{shoppingItem.hours}</Text>
+              <Text className="text-gray-800 font-medium">Hours not specified</Text>
             </View>
             <View className="flex-row items-center mt-2">
               <Ionicons name="location" size={16} color="#666" />
-              <Text className="text-gray-600 text-sm ml-2">{shoppingItem.location}</Text>
+              <Text className="text-gray-600 text-sm ml-2">
+                {shoppingItem.city}, {shoppingItem.province}
+              </Text>
             </View>
           </View>
           
           {/* Quick Actions */}
           <View className="flex-row justify-between mt-6 mb-2">
-            <TouchableOpacity 
-              className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
-              onPress={() => Linking.openURL(`tel:${shoppingItem.phone}`)}
-            >
-              <Ionicons name="call" size={20} color="#006D77" />
-              <Text className="text-[#006D77] font-medium ml-2">Call</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
-              onPress={() => Linking.openURL(`mailto:${shoppingItem.email}`)}
-            >
-              <Ionicons name="mail" size={20} color="#006D77" />
-              <Text className="text-[#006D77] font-medium ml-2">Email</Text>
-            </TouchableOpacity>
-            {shoppingItem.website && (
+            {shoppingItem.phone && (
               <TouchableOpacity 
                 className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
-                onPress={() => Linking.openURL(shoppingItem.website)}
+                onPress={() => Linking.openURL(`tel:${shoppingItem.phone}`)}
               >
-                <Ionicons name="globe" size={20} color="#006D77" />
-                <Text className="text-[#006D77] font-medium ml-2">Website</Text>
+                <Ionicons name="call" size={20} color="#006D77" />
+                <Text className="text-[#006D77] font-medium ml-2">Call</Text>
+              </TouchableOpacity>
+            )}
+            {shoppingItem.email && (
+              <TouchableOpacity 
+                className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
+                onPress={() => Linking.openURL(`mailto:${shoppingItem.email}`)}
+              >
+                <Ionicons name="mail" size={20} color="#006D77" />
+                <Text className="text-[#006D77] font-medium ml-2">Email</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -342,7 +472,7 @@ const ShoppingDetails = () => {
           <View className="mt-6">
             <Text className="text-lg font-semibold text-gray-800 mb-3">Description</Text>
             <Text className="text-gray-600 text-sm leading-6">
-              {shoppingItem.description || `${shoppingItem.name} is a ${shoppingItem.category.toLowerCase()} located in ${shoppingItem.location}. With a rating of ${shoppingItem.rating}, it offers a ${shoppingItem.priceRange.length === 1 ? 'budget-friendly' : shoppingItem.priceRange.length === 2 ? 'moderate' : 'premium'} shopping experience.`}
+              {shoppingItem.description || `${shoppingItem.name} is located in ${shoppingItem.city}, ${shoppingItem.province}.`}
             </Text>
           </View>
 
@@ -367,7 +497,7 @@ const ShoppingDetails = () => {
                       <Text className="text-[#006D77] font-medium">View More Products</Text>
                       <Ionicons name="chevron-down" size={16} color="#006D77" className="ml-2" />
                     </TouchableOpacity>
-                  )}
+                    )}
                 </>
               ) : (
                 <Text className="text-gray-500 italic text-sm">No product information available.</Text>
@@ -380,7 +510,9 @@ const ShoppingDetails = () => {
             <Text className="text-lg font-semibold text-gray-800 mb-3">Location</Text>
             <View className="flex-row items-center">
               <Ionicons name="location" size={16} color="#666" />
-              <Text className="text-gray-600 text-sm ml-2">{shoppingItem.location}</Text>
+              <Text className="text-gray-600 text-sm ml-2">
+                {shoppingItem.city}, {shoppingItem.province}
+              </Text>
             </View>
             
             <View className="flex-row mt-4">
@@ -509,19 +641,23 @@ const ShoppingDetails = () => {
       {/* Action Button */}
       <View className="p-5 bg-white border-t border-gray-200">
         <View className="flex-row">
-          <TouchableOpacity 
-            className="flex-1 bg-[#006D77] p-4 rounded-xl mr-2 flex-row items-center justify-center"
-            onPress={() => Linking.openURL(`tel:${shoppingItem.phone}`)}
-          >
-            <Ionicons name="call" size={20} color="white" />
-            <Text className="text-white font-bold text-lg ml-2">Contact Store</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            className="bg-white border border-[#006D77] p-4 rounded-xl ml-2 flex-row items-center justify-center"
-            onPress={() => Linking.openURL(`https://wa.me/${shoppingItem.phone.replace(/\D/g, '')}`)}
-          >
-            <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+          {shoppingItem.phone && (
+            <TouchableOpacity 
+              className="flex-1 bg-[#006D77] p-4 rounded-xl mr-2 flex-row items-center justify-center"
+              onPress={() => Linking.openURL(`tel:${shoppingItem.phone}`)}
+            >
+              <Ionicons name="call" size={20} color="white" />
+              <Text className="text-white font-bold text-lg ml-2">Contact Store</Text>
             </TouchableOpacity>
+          )}
+          {shoppingItem.phone && (
+            <TouchableOpacity 
+              className="bg-white border border-[#006D77] p-4 rounded-xl ml-2 flex-row items-center justify-center"
+              onPress={() => Linking.openURL(`https://wa.me/${shoppingItem.phone.replace(/\D/g, '')}`)}
+            >
+              <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>

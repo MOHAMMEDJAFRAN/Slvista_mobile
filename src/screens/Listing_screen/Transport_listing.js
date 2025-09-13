@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Image, ScrollView, TouchableOpacity, Modal, Linking, Dimensions, ActivityIndicator } from "react-native";
+import { View, Text, Image, ScrollView, TouchableOpacity, Modal, Linking, Dimensions, ActivityIndicator, Alert } from "react-native";
 import { MaterialIcons, Ionicons, FontAwesome5, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+
+// Import environment variables
+import { API_BASE_URL } from '@env';
 
 const { width } = Dimensions.get('window');
 
@@ -14,7 +18,9 @@ const TransportListing = () => {
     sortBy: "recommended"
   });
   const [filteredData, setFilteredData] = useState([]);
+  const [transportData, setTransportData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Vehicle type icons mapping
   const vehicleIcons = {
@@ -28,90 +34,14 @@ const TransportListing = () => {
     Flight: "plane-departure",
     Helicopter: "helicopter",
     Boat: "ship",
-    Ship: "ship"
+    Ship: "ship",
+    threewheelars: "car" // Using car icon for threewheelars
   };
 
-  // Sample transport data with additional details
-  const transportData = [
-    { 
-      id: 1, 
-      name: "City Bus Service", 
-      type: "Bus", 
-      images: [
-        "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YnVzfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1509749837423-ac94a8254d59?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGJ1c3xlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "Downtown",
-      rating: 4.2,
-      website: "https://citybusservice.com",
-      email: "info@citybusservice.com",
-      phone: "+1 (555) 123-4567",
-      specialties: ["24/7 Service", "Airport Transfers", "Wheelchair Accessible"],
-      reviews: [
-        {
-          id: 1,
-          user: "John",
-          rating: 5,
-          comment: "Excellent service! Very punctual.",
-          date: "2023-10-15",
-          userImage: "https://randomuser.me/api/portraits/men/1.jpg"
-        },
-        {
-          id: 2,
-          user: "Smith",
-          rating: 5,
-          comment: "Excellent service! Very punctual.",
-          date: "2023-10-15",
-          userImage: "https://randomuser.me/api/portraits/men/1.jpg"
-        },
-        {
-          id: 3,
-          user: "Sharah",
-          rating: 5,
-          comment: "Excellent service! Very punctual.",
-          date: "2023-10-15",
-          userImage: "https://randomuser.me/api/portraits/men/1.jpg"
-        },
-        {
-          id: 4,
-          user: "Mash",
-          rating: 5,
-          comment: "Excellent service! Very punctual.",
-          date: "2023-10-15",
-          userImage: "https://randomuser.me/api/portraits/men/1.jpg"
-        }
-      ]
-    },
-    { 
-      id: 2, 
-      name: "Premium Taxi", 
-      type: "Taxi",
-      images: [
-        "https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dGF4aXxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1557223566-265eb7cee9f3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8dGF4aXxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "City Center",
-      rating: 4.8,
-      website: "https://premiumtaxi.com",
-      email: "book@premiumtaxi.com",
-      phone: "+1 (555) 987-6543",
-      specialties: ["Luxury Vehicles", "24/7 Service", "Corporate Travel"],
-      reviews: [
-        {
-          id: 1,
-          user: "Jane Smith",
-          rating: 5,
-          comment: "Very comfortable and professional service!",
-          date: "2023-09-28",
-          userImage: "https://randomuser.me/api/portraits/women/2.jpg"
-        }
-      ]
-    },
-    // Add the rest of your transport items with images arrays...
-  ];
-
-  const vehicleTypes = ["Bus", "Taxi", "Train", "Bicycle", "Shuttle", "Car"];
-  const locations = ["Downtown", "City Center", "Metro Area", "Airport", "Tourist District", "Business District"];
+  // Extract unique vehicle types and locations from API data
+  const [vehicleTypes, setVehicleTypes] = useState([]);
+  const [locations, setLocations] = useState([]);
+  
   const sortOptions = [
     { id: "recommended", label: "Recommended", icon: "star" },
     { id: "name", label: "Name: A to Z", icon: "sort-alphabetical-ascending" },
@@ -119,19 +49,76 @@ const TransportListing = () => {
     { id: "rating", label: "Highest Rated", icon: "sort-descending" }
   ];
 
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setFilteredData(transportData);
+  // Fetch transport data from API
+  const fetchTransportData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log("API Base URL:", API_BASE_URL);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/transport-agencies`);
+      
+      if (response.data.success) {
+        // Transform API data to match your component's expected format
+        const transformedData = response.data.data.map(agency => ({
+          id: agency.id,
+          name: agency.title,
+          type: agency.transportTypes.length > 0 ? agency.transportTypes[0].name : "Car",
+          types: agency.transportTypes.map(t => t.name),
+          images: agency.images.map(img => img.imageUrl),
+          location: agency.city || agency.district || agency.address,
+          rating: agency.rating || 4.2, // Default rating
+          website: agency.website,
+          email: agency.email,
+          phone: agency.phone,
+          specialties: [
+            agency.serviceArea && `Service: ${agency.serviceArea}`,
+            agency.vistaVerified && "Vista Verified"
+          ].filter(Boolean),
+          address: agency.address,
+          city: agency.city,
+          district: agency.district,
+          active: agency.isActive, // This is the active status from API
+          province: agency.province,
+          description: agency.description,
+          vistaVerified: agency.vistaVerified,
+          originalData: agency
+        }));
+        
+        setTransportData(transformedData);
+        setFilteredData(transformedData);
+        
+        // Extract unique vehicle types from all agencies
+        const allVehicleTypes = [...new Set(
+          transformedData.flatMap(agency => agency.types)
+        )];
+        setVehicleTypes(allVehicleTypes);
+        
+        // Extract unique locations
+        const allLocations = [...new Set(
+          transformedData.map(agency => agency.location)
+        )].filter(Boolean);
+        setLocations(allLocations);
+      } else {
+        throw new Error("API returned unsuccessful response");
+      }
+    } catch (err) {
+      console.error("Error fetching transport data:", err);
+      setError("Failed to load transport options. Please try again.");
+    } finally {
       setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    }
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchTransportData();
   }, []);
 
   // Apply filters whenever activeFilters changes
   useEffect(() => {
     applyFiltersToData();
-  }, [activeFilters]);
+  }, [activeFilters, transportData]);
 
   const applyFiltersToData = () => {
     let result = [...transportData];
@@ -139,7 +126,7 @@ const TransportListing = () => {
     // Apply vehicle type filter
     if (activeFilters.vehicleType.length > 0) {
       result = result.filter(item => 
-        activeFilters.vehicleType.includes(item.type)
+        item.types.some(type => activeFilters.vehicleType.includes(type))
       );
     }
     
@@ -227,11 +214,32 @@ const TransportListing = () => {
     );
   };
 
+  const retryFetch = () => {
+    fetchTransportData();
+  };
+
   if (loading) {
     return (
       <View className="flex-1 bg-gray-50 justify-center items-center">
         <ActivityIndicator size="large" color="#006D77" />
         <Text className="mt-4 text-gray-600">Loading transport options...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center p-4">
+        <MaterialCommunityIcons name="alert-circle" size={48} color="#dc2626" />
+        <Text className="text-red-600 text-lg mt-4 text-center font-semibold">
+          {error}
+        </Text>
+        <TouchableOpacity 
+          onPress={retryFetch}
+          className="mt-6 bg-[#006D77] px-6 py-3 rounded-xl"
+        >
+          <Text className="text-white font-semibold">Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -285,11 +293,12 @@ const TransportListing = () => {
               activeOpacity={0.7}
             >
               <View className="flex-row">
-                <View className="w-24 h-24 rounded-xl overflow-hidden mr-4 relative">
+                <View className="w-28 h-28 rounded-xl overflow-hidden mr-3 relative">
                   <Image 
-                    source={{ uri: item.images?.[0] || item.image }} 
+                    source={{ uri: item.images?.[0] }} 
                     className="w-full h-full"
                     resizeMode="cover"
+                    onError={() => console.log("Image failed to load")}
                   />
                   {item.images && item.images.length > 1 && (
                     <View className="absolute bottom-2 right-2 bg-black/50 rounded-full px-2 py-1">
@@ -298,69 +307,66 @@ const TransportListing = () => {
                       </Text>
                     </View>
                   )}
+                  
+                  {/* Active Status Indicator */}
+                  <View className="absolute top-2 left-2 flex-row">
+                    {item.vistaVerified && (
+                      <View className="bg-green-500 rounded-full px-2 py-1 mr-1">
+                        <Text className="text-white text-xs">Verified</Text>
+                      </View>
+                    )}
+                    {/* <View className={`rounded-full w-6 h-6 flex items-center justify-center ${item.active ? 'bg-green-500' : 'bg-red-500'}`}>
+                      <Ionicons 
+                        name={item.active ? 'checkmark' : 'close'} 
+                        size={16} 
+                        color="white" 
+                      />
+                    </View> */}
+                    {/* Active Status Indicator */}
+                    <View className={`rounded-full px-2 py-1 flex-row items-center ${item.active ? 'bg-green-100' : 'bg-red-100'}`}>
+                      <Ionicons 
+                        name={item.active ? 'checkmark' : 'close'} 
+                        size={12} 
+                        color={item.active ? '#16a34a' : '#dc2626'} 
+                        />
+                      <Text className={`text-xs ml-1 ${item.active ? 'text-green-800' : 'text-red-800'}`}>
+                          {item.active ? 'Available' : 'Unavailable'}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
                 <View className="flex-1">
                   <View className="flex-row justify-between items-start">
-                    <Text className="text-lg font-bold text-gray-800 flex-1 mr-2" numberOfLines={1}>
+                    <Text className="text-lg font-bold text-gray-800 flex-1 mr-2" numberOfLines={5}>
                       {item.name}
                     </Text>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(item.website);
-                      }}
-                      className="p-2 bg-gray-100 rounded-full"
-                    >
-                      <Feather name="external-link" size={16} color="#006D77" />
-                    </TouchableOpacity>
                   </View>
                   
                   <View className="flex-row items-center mt-1">
                     <Ionicons name="location" size={14} color="#666" />
-                    <Text className="text-gray-500 text-sm ml-1">{item.location}</Text>
+                    <Text className="text-gray-500 text-sm ml-1 mr-5">{item.location}</Text>
                   </View>
                   
                   <View className="flex-row items-center mt-2">
                     {renderStars(item.rating)}
                   </View>
                   
-                  {item.specialties && item.specialties.length > 0 && (
+                  {item.types && item.types.length > 0 && (
                     <View className="flex-row flex-wrap mt-2">
-                      {item.specialties.slice(0, 2).map((specialty, index) => (
+                      {item.types.slice(0, 2).map((type, index) => (
                         <View key={index} className="bg-[#E6F6F8] rounded-full px-2 py-1 mr-1 mb-1">
-                          <Text className="text-[#006D77] text-xs">{specialty}</Text>
+                          <Text className="text-[#006D77] text-xs">{type}</Text>
                         </View>
                       ))}
-                      {item.specialties.length > 2 && (
+                      {item.types.length > 2 && (
                         <View className="bg-[#E6F6F8] rounded-full px-2 py-1">
                           <Text className="text-[#006D77] text-xs">
-                            +{item.specialties.length - 2}
+                            +{item.types.length - 2}
                           </Text>
                         </View>
                       )}
                     </View>
                   )}
-                  
-                  <View className="flex-row mt-3">
-                    <TouchableOpacity 
-                      className="p-2 bg-gray-100 rounded-full mr-2"
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(`tel:${item.phone}`);
-                      }}
-                    >
-                      <Feather name="phone" size={16} color="#006D77" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      className="p-2 bg-gray-100 rounded-full mr-2"
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(`mailto:${item.email}`);
-                      }}
-                    >
-                      <Feather name="mail" size={16} color="#006D77" />
-                    </TouchableOpacity>
-                  </View>
                 </View>
               </View>
               <TouchableOpacity 
@@ -368,7 +374,7 @@ const TransportListing = () => {
                 onPress={() => handleViewDetails(item)}
                 activeOpacity={0.8}
               >
-                <Text className="text-[#006D77] font-semibold">View Details & Book</Text>
+                <Text className="text-[#006D77] font-semibold">View Details</Text>
                 <Ionicons name="arrow-forward" size={18} color="#006D77" />
               </TouchableOpacity>
             </TouchableOpacity>
@@ -428,7 +434,7 @@ const TransportListing = () => {
                       }`}
                     >
                       <FontAwesome5 
-                        name={vehicleIcons[type]} 
+                        name={vehicleIcons[type] || "car"} 
                         size={14} 
                         color={activeFilters.vehicleType.includes(type) ? "white" : "#4b5563"} 
                         style={{ marginRight: 6 }}

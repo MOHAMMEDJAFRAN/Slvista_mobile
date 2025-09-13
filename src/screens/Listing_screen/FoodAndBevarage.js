@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Image, ScrollView, TouchableOpacity, Modal, Linking, ActivityIndicator } from "react-native";
 import { MaterialIcons, Ionicons, FontAwesome5, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import { API_BASE_URL } from '@env';
 
 const FoodBeverageListing = () => {
   const navigation = useNavigation();
@@ -12,8 +14,10 @@ const FoodBeverageListing = () => {
     priceRange: [],
     sortBy: "recommended"
   });
+  const [foodData, setFoodData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Category icons mapping
   const categoryIcons = {
@@ -25,114 +29,65 @@ const FoodBeverageListing = () => {
     "Dessert": "ice-cream"
   };
 
-  // Sample food & beverage data with additional details
-  const foodData = [
-    { 
-      id: 1, 
-      name: "Fine Dining Restaurant", 
-      category: "Restaurant", 
-      images: [
-        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cmVzdGF1cmFudHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8cmVzdGF1cmFudHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "Downtown",
-      rating: 4.8,
-      priceRange: "$$$",
-      website: "https://finedining.com",
-      email: "info@finedining.com",
-      phone: "+1 (555) 123-4567",
-      specialties: ["Fine Dining", "Wine Pairing", "Gourmet Cuisine"],
-      reviews: [
-        {
-          id: 1,
-          user: "Michael Johnson",
-          rating: 5,
-          comment: "Exceptional dining experience! The service was impeccable and the food was outstanding.",
-          date: "2023-10-18",
-          userImage: "https://randomuser.me/api/portraits/men/32.jpg"
-        }
-      ]
-    },
-    { 
-      id: 2, 
-      name: "Local Coffee Shop", 
-      category: "Cafe",
-      images: [
-        "https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Y29mZmVlJTIwc2hvcHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1442512595331-e89e73853f31?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Y29mZmVlJTIwc2hvcHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "City Center",
-      rating: 4.5,
-      priceRange: "$",
-      website: "https://localcoffee.com",
-      email: "hello@localcoffee.com",
-      phone: "+1 (555) 234-5678",
-      specialties: ["Artisan Coffee", "Homemade Pastries", "Free WiFi"],
-      reviews: [
-        {
-          id: 1,
-          user: "Emma Wilson",
-          rating: 4,
-          comment: "Great coffee and cozy atmosphere. Perfect place to work or catch up with friends.",
-          date: "2023-10-15",
-          userImage: "https://randomuser.me/api/portraits/women/42.jpg"
-        }
-      ]
-    },
-    { 
-      id: 3, 
-      name: "Cocktail Lounge", 
-      category: "Bar",
-      images: [
-        "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OXx8YmFyfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1527525443983-6e60c75fff46?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGJhcnxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "Entertainment District",
-      rating: 4.6,
-      priceRange: "$$",
-      website: "https://cocktaillounge.com",
-      email: "reservations@cocktaillounge.com",
-      phone: "+1 (555) 345-6789",
-      specialties: ["Craft Cocktails", "Live Music", "Happy Hour"],
-      reviews: [
-        {
-          id: 1,
-          user: "David Kim",
-          rating: 5,
-          comment: "Amazing cocktails and great ambiance. The bartenders are true mixologists!",
-          date: "2023-10-12",
-          userImage: "https://randomuser.me/api/portraits/men/22.jpg"
-        }
-      ]
-    },
-    // Add more items following the same pattern...
-  ];
-
   const categories = ["Restaurant", "Cafe", "Bar", "Street Food", "Bakery", "Dessert"];
-  const locations = ["Downtown", "City Center", "Entertainment District", "Market Area", "Waterfront", "Shopping District"];
+  const locations = ["Western", "Central", "Southern", "Northern", "Eastern", "North Western"];
   const priceRanges = ["$", "$$", "$$$"];
   const sortOptions = [
     { id: "recommended", label: "Recommended", icon: "star" },
     { id: "name", label: "Name: A to Z", icon: "sort-alphabetical-ascending" },
     { id: "nameDesc", label: "Name: Z to A", icon: "sort-alphabetical-descending" },
     { id: "rating", label: "Highest Rated", icon: "sort-descending" },
-    { id: "priceLow", label: "Price: Low to High", icon: "sort-numeric-ascending" },
-    { id: "priceHigh", label: "Price: High to Low", icon: "sort-numeric-descending" }
+    // { id: "priceLow", label: "Price: Low to High", icon: "sort-numeric-ascending" },
+    // { id: "priceHigh", label: "Price: High to Low", icon: "sort-numeric-descending" }
   ];
 
-  // Simulate loading
+  // Fetch data from API
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setFilteredData(foodData);
-      setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    const fetchFoodData = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${API_BASE_URL}/api/v1/food-and-beverages`);
+        
+        if (response.data.success) {
+          // Transform API data to match your component structure
+          const transformedData = response.data.data.map(item => ({
+            id: item.id,
+            name: item.name,
+            category: item.cuisineType || "Restaurant", // Default to Restaurant if no cuisine type
+            images: item.images ? item.images.map(img => img.imageUrl) : [],
+            location: item.province || "Western", // Default to Western if no province
+            rating: item.rating || 4.5, // Default rating since API doesn't provide
+            priceRange: "$$", // Default price range since API doesn't provide
+            website: item.website,
+            email: item.email,
+            phone: item.phone,
+            description: item.description,
+            specialties: item.cuisineType ? [item.cuisineType] : ["Local Cuisine"],
+            reviews: [], // Empty reviews since API doesn't provide
+            isActive: item.isActive // Add active status from API
+          }));
+          
+          setFoodData(transformedData);
+          setFilteredData(transformedData);
+          setError(null);
+        } else {
+          setError("Failed to fetch data from server");
+        }
+      } catch (err) {
+        console.error("Error fetching food data:", err);
+        setError("Failed to connect to server");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFoodData();
   }, []);
 
   // Apply filters whenever activeFilters changes
   useEffect(() => {
     applyFiltersToData();
-  }, [activeFilters]);
+  }, [activeFilters, foodData]);
 
   const applyFiltersToData = () => {
     let result = [...foodData];
@@ -216,7 +171,7 @@ const FoodBeverageListing = () => {
   };
 
   const handleViewDetails = (item) => {
-    navigation.navigate("FoodBeverageDetails", { foodItem: item });
+    navigation.navigate("FoodBeverageDetails", { itemId: item.id });
   };
 
   const renderStars = (rating) => {
@@ -257,6 +212,18 @@ const FoodBeverageListing = () => {
       <View className="flex-1 bg-gray-50 justify-center items-center">
         <ActivityIndicator size="large" color="#006D77" />
         <Text className="mt-4 text-gray-600">Loading food & beverage options...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center p-4">
+        <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#dc2626" />
+        <Text className="text-red-600 text-lg mt-4 text-center font-semibold">{error}</Text>
+        <Text className="text-gray-500 text-sm mt-2 text-center">
+          Please check your connection and try again
+        </Text>
       </View>
     );
   }
@@ -310,12 +277,26 @@ const FoodBeverageListing = () => {
               activeOpacity={0.7}
             >
               <View className="flex-row">
-                <View className="w-24 h-24 rounded-xl overflow-hidden mr-4 relative">
+                <View className="w-28 h-28 rounded-xl overflow-hidden mr-4 relative">
                   <Image 
-                    source={{ uri: item.images?.[0] || item.image }} 
+                    source={{ uri: item.images?.[0] || "https://via.placeholder.com/150" }} 
                     className="w-full h-full"
                     resizeMode="cover"
                   />
+                  {/* Active Status Badge */}
+                  <View className="absolute top-2 left-2 flex-row">
+                    {/* Active Status Indicator */}
+                    <View className={`rounded-full px-2 py-1 flex-row items-center ${item.isActive ? 'bg-green-100' : 'bg-red-100'}`}>
+                      <Ionicons 
+                        name={item.isActive ? 'checkmark' : 'close'} 
+                        size={12} 
+                        color={item.isActive ? '#16a34a' : '#dc2626'} 
+                      />
+                      <Text className={`text-xs ml-1 ${item.isActive ? 'text-green-800' : 'text-red-800'}`}>
+                        {item.isActive ? 'Available' : 'Unavailable'}
+                      </Text>
+                    </View>
+                  </View>
                   {item.images && item.images.length > 1 && (
                     <View className="absolute bottom-2 right-2 bg-black/50 rounded-full px-2 py-1">
                       <Text className="text-white text-xs">
@@ -326,23 +307,15 @@ const FoodBeverageListing = () => {
                 </View>
                 <View className="flex-1">
                   <View className="flex-row justify-between items-start">
-                    <Text className="text-lg font-bold text-gray-800 flex-1 mr-2" numberOfLines={1}>
+                    <Text className="text-lg font-bold text-gray-800 flex-1 mr-2" numberOfLines={5}>
                       {item.name}
                     </Text>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(item.website);
-                      }}
-                      className="p-2 bg-gray-100 rounded-full"
-                    >
-                      <Feather name="external-link" size={16} color="#006D77" />
-                    </TouchableOpacity>
+                    
                   </View>
                   
                   <View className="flex-row items-center mt-1">
                     <Ionicons name="location" size={14} color="#666" />
-                    <Text className="text-gray-500 text-sm ml-1">{item.location}</Text>
+                    <Text className="text-gray-500 text-sm ml-1 mr-5">{item.location}</Text>
                   </View>
                   
                   <View className="flex-row items-center mt-2">
@@ -352,17 +325,17 @@ const FoodBeverageListing = () => {
                   <View className="flex-row justify-between items-center mt-2">
                     <View className="flex-row items-center">
                       <FontAwesome5 
-                        name={categoryIcons[item.category]} 
+                        name={categoryIcons[item.category] || "utensils"} 
                         size={14} 
                         color="#006D77" 
                         style={{ marginRight: 6 }}
                       />
-                      <Text className="text-gray-500 text-sm">{item.category}</Text>
+                      <Text className="text-gray-500 text-sm mr-5">{item.category}</Text>
                     </View>
-                    {renderPriceRange(item.priceRange)}
+                    {/* {renderPriceRange(item.priceRange)} */}
                   </View>
                   
-                  {item.specialties && item.specialties.length > 0 && (
+                  {/* {item.specialties && item.specialties.length > 0 && (
                     <View className="flex-row flex-wrap mt-2">
                       {item.specialties.slice(0, 2).map((specialty, index) => (
                         <View key={index} className="bg-[#E6F6F8] rounded-full px-2 py-1 mr-1 mb-1">
@@ -377,28 +350,32 @@ const FoodBeverageListing = () => {
                         </View>
                       )}
                     </View>
-                  )}
+                  )} */}
                   
-                  <View className="flex-row mt-3">
-                    <TouchableOpacity 
-                      className="p-2 bg-gray-100 rounded-full mr-2"
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(`tel:${item.phone}`);
-                      }}
-                    >
-                      <Feather name="phone" size={16} color="#006D77" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      className="p-2 bg-gray-100 rounded-full mr-2"
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(`mailto:${item.email}`);
-                      }}
-                    >
-                      <Feather name="mail" size={16} color="#006D77" />
-                    </TouchableOpacity>
-                  </View>
+                  {/* <View className="flex-row mt-3">
+                    {item.phone && (
+                      <TouchableOpacity 
+                        className="p-2 bg-gray-100 rounded-full mr-2"
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          Linking.openURL(`tel:${item.phone}`);
+                        }}
+                      >
+                        <Feather name="phone" size={16} color="#006D77" />
+                      </TouchableOpacity>
+                    )}
+                    {item.email && (
+                      <TouchableOpacity 
+                        className="p-2 bg-gray-100 rounded-full mr-2"
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          Linking.openURL(`mailto:${item.email}`);
+                        }}
+                      >
+                        <Feather name="mail" size={16} color="#006D77" />
+                      </TouchableOpacity>
+                    )}
+                  </View> */}
                 </View>
               </View>
               <TouchableOpacity 
@@ -406,7 +383,7 @@ const FoodBeverageListing = () => {
                 onPress={() => handleViewDetails(item)}
                 activeOpacity={0.8}
               >
-                <Text className="text-[#006D77] font-semibold">View Details & Book</Text>
+                <Text className="text-[#006D77] font-semibold">View Details</Text>
                 <Ionicons name="arrow-forward" size={18} color="#006D77" />
               </TouchableOpacity>
             </TouchableOpacity>
@@ -514,7 +491,7 @@ const FoodBeverageListing = () => {
               </View>
               
               {/* Price Range Filter */}
-              <View className="mb-6">
+              {/* <View className="mb-6">
                 <Text className="text-lg font-semibold text-gray-800 mb-3">Price Range</Text>
                 <View className="flex-row flex-wrap">
                   {priceRanges.map((range) => (
@@ -539,7 +516,7 @@ const FoodBeverageListing = () => {
                     </TouchableOpacity>
                   ))}
                 </View>
-              </View>
+              </View> */}
               
               {/* Sort By Filter */}
               <View className="mb-6">

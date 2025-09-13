@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Image, ScrollView, TouchableOpacity, Modal, Linking, ActivityIndicator } from "react-native";
 import { MaterialIcons, Ionicons, FontAwesome, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import { API_BASE_URL } from '@env';
 
 const EventsListing = () => {
   const navigation = useNavigation();
@@ -14,6 +16,8 @@ const EventsListing = () => {
   });
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [eventsData, setEventsData] = useState([]);
+  const [error, setError] = useState(null);
 
   // Category icons mapping
   const categoryIcons = {
@@ -24,18 +28,18 @@ const EventsListing = () => {
     "Business": "briefcase",
     "Entertainment": "film",
     "Wellness": "heart",
-    "Community": "users"
+    "Community": "users",
+    "General": "calendar"
   };
 
-  // Sample events data with additional details
-  const eventsData = [
+  // Sample events data for fallback
+  const sampleEventsData = [
     {
       id: 1,
       name: "Summer Music Festival",
       category: "Music",
       images: [
         "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bXVzaWMlMjBmZXN0aXZhbHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1501281667305-0d4ebd5b3c38?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8bXVzaWMlMjBmZXN0aXZhbHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
       ],
       date: "July 15, 2023",
       time: "6:00 PM - 11:00 PM",
@@ -47,7 +51,8 @@ const EventsListing = () => {
       website: "https://summerfestival.com",
       email: "info@summerfestival.com",
       phone: "+1 (555) 123-4567",
-      description: "Annual summer music festival featuring top artists across multiple genres. Food trucks and beverages available."
+      description: "Annual summer music festival featuring top artists across multiple genres.",
+      isActive: true // Added active status
     },
     {
       id: 2,
@@ -55,7 +60,6 @@ const EventsListing = () => {
       category: "Food & Drink",
       images: [
         "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8cmVzdGF1cmFudHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cmVzdGF1cmFudHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
       ],
       date: "July 22, 2023",
       time: "12:00 PM - 8:00 PM",
@@ -67,53 +71,111 @@ const EventsListing = () => {
       website: "https://foodwineexpo.com",
       email: "tickets@foodwineexpo.com",
       phone: "+1 (555) 234-5678",
-      description: "Experience the finest food and wine from local and international vendors. Cooking demonstrations and tastings."
-    },
-    {
-      id: 3,
-      name: "Art Exhibition Opening",
-      category: "Art & Culture",
-      images: [
-        "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YXJ0JTIwZ2FsbGVyeXxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8YXJ0JTIwZXhoaWJpdGlvbnxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-      ],
-      date: "August 5, 2023",
-      time: "7:00 PM - 10:00 PM",
-      location: "Modern Art Gallery",
-      rating: 4.7,
-      price: "Free",
-      priceType: "free",
-      ticketStatus: "RSVP Required",
-      website: "https://modernartgallery.com",
-      email: "events@modernartgallery.com",
-      phone: "+1 (555) 345-6789",
-      description: "Opening night of our new contemporary art exhibition featuring works from emerging local artists."
-    },
-    {
-      id: 4,
-      name: "Community Yoga Session",
-      category: "Wellness",
-      images: [
-        "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8eW9nYXxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1545389336-8c6dfde0b2d1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8eW9nYXxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-      ],
-      date: "Every Saturday",
-      time: "8:00 AM - 9:00 AM",
-      location: "Central Park",
-      rating: 4.9,
-      price: "Free",
-      priceType: "free",
-      ticketStatus: "Drop-in",
-      website: "https://communityyoga.com",
-      email: "hello@communityyoga.com",
-      phone: "+1 (555) 456-7890",
-      description: "Free community yoga sessions in the park. All levels welcome. Mats provided for those who need them."
-    },
-    // Add more events following the same pattern...
+      description: "Experience the finest food and wine from local and international vendors.",
+      isActive: false // Added active status
+    }
   ];
 
-  const categories = ["Music", "Food & Drink", "Art & Culture", "Sports", "Business", "Entertainment", "Wellness", "Community"];
-  const locations = ["City Park Amphitheater", "Convention Center", "Modern Art Gallery", "Central Park", "Downtown Streets", "Innovation Hub", "Laugh Factory", "Town Square"];
+  // Fetch events from API
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log("Fetching events from:", `${API_BASE_URL}/api/v1/events`);
+        
+        const response = await axios.get(`${API_BASE_URL}/api/v1/events`, {
+          timeout: 10000, // 10 second timeout
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log("API Response status:", response.status);
+        
+        // Handle different response structures
+        let eventsArray = [];
+        
+        if (Array.isArray(response.data)) {
+          // If response.data is directly an array
+          eventsArray = response.data;
+        } else if (response.data && Array.isArray(response.data.data)) {
+          // If response.data has a data property that's an array
+          eventsArray = response.data.data;
+        } else if (response.data && Array.isArray(response.data.events)) {
+          // If response.data has an events property that's an array
+          eventsArray = response.data.events;
+        } else {
+          throw new Error("Invalid API response format: Expected array of events");
+        }
+        
+        console.log("Events array length:", eventsArray.length);
+        
+        // Transform API data to match your component's expected format
+        const transformedData = eventsArray.map(event => ({
+          id: event.id || Math.random(),
+          name: event.title || "Untitled Event",
+          category: event.category || "General",
+          images: event.images ? event.images.map(img => img.imageUrl) : [],
+          date: event.eventDate ? new Date(event.eventDate).toLocaleDateString() : "Date TBA",
+          time: event.eventTime || "TBA",
+          location: event.venue || "Location TBA",
+          rating: 4.5, // Default rating
+          price: "$$", // Default price indicator
+          priceType: "paid", // Default to paid
+          ticketStatus: "Available",
+          website: event.website || "#",
+          email: event.email || "",
+          phone: event.phone || "",
+          description: event.description || "",
+          city: event.city || "",
+          province: event.province || "",
+          vistaVerified: event.vistaVerified || false,
+          isActive: event.isActive || true, // Add active status from API, default to true
+          // Include original API data for reference
+          originalData: event
+        }));
+        
+        setEventsData(transformedData);
+        setFilteredData(transformedData);
+        
+      } catch (err) {
+        console.error("Error fetching events:", err);
+        console.error("Error details:", err.response?.data || err.message);
+        
+        let errorMessage = "Failed to load events. Please try again.";
+        
+        if (err.response) {
+          errorMessage = `Server error: ${err.response.status}`;
+          if (err.response.status === 404) {
+            errorMessage = "Events endpoint not found";
+          } else if (err.response.status === 500) {
+            errorMessage = "Server error. Please try again later.";
+          }
+        } else if (err.request) {
+          errorMessage = "Network error. Please check your connection.";
+        } else if (err.code === 'ECONNABORTED') {
+          errorMessage = "Request timeout. Please try again.";
+        }
+        
+        setError(errorMessage);
+        
+        // Fallback to sample data
+        setEventsData(sampleEventsData);
+        setFilteredData(sampleEventsData);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  // Extract unique categories, locations, etc. from data
+  const categories = [...new Set(eventsData.map(item => item.category))].filter(Boolean);
+  const locations = [...new Set(eventsData.map(item => item.location))].filter(Boolean);
   const priceTypes = ["free", "paid"];
   const sortOptions = [
     { id: "date", label: "Date (Soonest First)", icon: "sort-calendar-ascending" },
@@ -121,23 +183,14 @@ const EventsListing = () => {
     { id: "name", label: "Name: A to Z", icon: "sort-alphabetical-ascending" },
     { id: "nameDesc", label: "Name: Z to A", icon: "sort-alphabetical-descending" },
     { id: "rating", label: "Highest Rated", icon: "sort-descending" },
-    { id: "price", label: "Price: Low to High", icon: "sort-numeric-ascending" },
-    { id: "priceDesc", label: "Price: High to Low", icon: "sort-numeric-descending" }
+    // { id: "price", label: "Price: Low to High", icon: "sort-numeric-ascending" },
+    // { id: "priceDesc", label: "Price: High to Low", icon: "sort-numeric-descending" }
   ];
-
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setFilteredData(eventsData);
-      setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Apply filters whenever activeFilters changes
   useEffect(() => {
     applyFiltersToData();
-  }, [activeFilters]);
+  }, [activeFilters, eventsData]);
 
   const applyFiltersToData = () => {
     let result = [...eventsData];
@@ -166,11 +219,18 @@ const EventsListing = () => {
     // Apply sorting
     switch(activeFilters.sortBy) {
       case "date":
-        // Sort by date (for simplicity using ID, in real app use actual dates)
-        result.sort((a, b) => a.id - b.id);
+        result.sort((a, b) => {
+          const dateA = new Date(a.originalData?.eventDate || a.date);
+          const dateB = new Date(b.originalData?.eventDate || b.date);
+          return dateA - dateB;
+        });
         break;
       case "dateDesc":
-        result.sort((a, b) => b.id - a.id);
+        result.sort((a, b) => {
+          const dateA = new Date(a.originalData?.eventDate || a.date);
+          const dateB = new Date(b.originalData?.eventDate || b.date);
+          return dateB - dateA;
+        });
         break;
       case "name":
         result.sort((a, b) => a.name.localeCompare(b.name));
@@ -182,7 +242,6 @@ const EventsListing = () => {
         result.sort((a, b) => b.rating - a.rating);
         break;
       case "price":
-        // Free events first, then by price indicator length
         result.sort((a, b) => {
           if (a.priceType === "free" && b.priceType !== "free") return -1;
           if (a.priceType !== "free" && b.priceType === "free") return 1;
@@ -190,7 +249,6 @@ const EventsListing = () => {
         });
         break;
       case "priceDesc":
-        // Paid events first, then by price indicator length descending
         result.sort((a, b) => {
           if (a.priceType !== "free" && b.priceType === "free") return -1;
           if (a.priceType === "free" && b.priceType !== "free") return 1;
@@ -297,11 +355,70 @@ const EventsListing = () => {
     }
   };
 
+  const retryFetch = () => {
+    setLoading(true);
+    setError(null);
+    // Re-fetch events
+    useEffect(() => {
+      const fetchEvents = async () => {
+        try {
+          const response = await axios.get(`${API_BASE_URL}/api/v1/events`);
+          if (Array.isArray(response.data)) {
+            const transformedData = response.data.map(event => ({
+              id: event.id,
+              name: event.title,
+              category: "General",
+              images: event.images ? event.images.map(img => img.imageUrl) : [],
+              date: event.eventDate ? new Date(event.eventDate).toLocaleDateString() : "Date TBA",
+              time: event.eventTime || "TBA",
+              location: event.venue || "Location TBA",
+              rating: 4.5,
+              price: "$$",
+              priceType: "paid",
+              ticketStatus: "Available",
+              website: event.website || "#",
+              email: event.email || "",
+              phone: event.phone || "",
+              description: event.description || "",
+              isActive: event.isActive || true, // Add active status
+              originalData: event
+            }));
+            setEventsData(transformedData);
+            setFilteredData(transformedData);
+          }
+        } catch (err) {
+          setError("Failed to load events. Using sample data.");
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchEvents();
+    }, []);
+  };
+
   if (loading) {
     return (
       <View className="flex-1 bg-gray-50 justify-center items-center">
         <ActivityIndicator size="large" color="#006D77" />
         <Text className="mt-4 text-gray-600">Loading events...</Text>
+      </View>
+    );
+  }
+
+  if (error && eventsData.length === 0) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center p-4">
+        <MaterialCommunityIcons name="alert-circle" size={48} color="#dc2626" />
+        <Text className="text-red-600 text-lg mt-4 text-center font-semibold">
+          {error}
+        </Text>
+        <TouchableOpacity 
+          onPress={retryFetch}
+          className="mt-6 bg-[#006D77] px-6 py-3 rounded-xl flex-row items-center"
+        >
+          <Ionicons name="reload" size={18} color="white" style={{marginRight: 8}} />
+          <Text className="text-white font-semibold">Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -331,6 +448,19 @@ const EventsListing = () => {
         </TouchableOpacity>
       </View>
 
+      {/* Error Banner */}
+      {error && eventsData.length > 0 && (
+        <View className="bg-yellow-100 p-3 border-b border-yellow-200">
+          <View className="flex-row items-center">
+            <Ionicons name="warning" size={20} color="#d97706" />
+            <Text className="text-yellow-800 ml-2 text-sm flex-1">{error} Using sample data.</Text>
+            <TouchableOpacity onPress={retryFetch}>
+              <Text className="text-[#006D77] font-semibold">Retry</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* Results Summary */}
       <View className="p-4 bg-white border-b border-gray-200 flex-row justify-between items-center">
         <Text className="text-gray-600 text-sm">
@@ -355,12 +485,26 @@ const EventsListing = () => {
               activeOpacity={0.7}
             >
               <View className="flex-row">
-                <View className="w-24 h-24 rounded-xl overflow-hidden mr-4 relative">
+                <View className="w-28 h-28 rounded-xl overflow-hidden mr-4 relative">
                   <Image 
-                    source={{ uri: item.images?.[0] }} 
+                    source={{ uri: item.images?.[0] || "https://via.placeholder.com/150" }} 
                     className="w-full h-full"
                     resizeMode="cover"
                   />
+                  {/* Active Status Badge */}
+                  <View className="absolute top-2 left-2 flex-row">
+                    {/* Active Status Indicator */}
+                    <View className={`rounded-full px-2 py-1 flex-row items-center ${item.isActive ? 'bg-green-100' : 'bg-red-100'}`}>
+                      <Ionicons 
+                        name={item.isActive ? 'checkmark' : 'close'} 
+                        size={12} 
+                        color={item.isActive ? '#16a34a' : '#dc2626'} 
+                      />
+                      <Text className={`text-xs ml-1 ${item.isActive ? 'text-green-800' : 'text-red-800'}`}>
+                        {item.isActive ? 'Available' : 'Unavailable'}
+                      </Text>
+                    </View>
+                  </View>
                   {item.images && item.images.length > 1 && (
                     <View className="absolute bottom-2 right-2 bg-black/50 rounded-full px-2 py-1">
                       <Text className="text-white text-xs">
@@ -371,23 +515,15 @@ const EventsListing = () => {
                 </View>
                 <View className="flex-1">
                   <View className="flex-row justify-between items-start">
-                    <Text className="text-lg font-bold text-gray-800 flex-1 mr-2" numberOfLines={1}>
+                    <Text className="text-lg font-bold text-gray-800 flex-1 mr-2" numberOfLines={5}>
                       {item.name}
                     </Text>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(item.website);
-                      }}
-                      className="p-2 bg-gray-100 rounded-full"
-                    >
-                      <Feather name="external-link" size={16} color="#006D77" />
-                    </TouchableOpacity>
+                    
                   </View>
                   
                   <View className="flex-row items-center mt-1">
                     <Ionicons name="location" size={14} color="#666" />
-                    <Text className="text-gray-500 text-sm ml-1">{item.location}</Text>
+                    <Text className="text-gray-500 text-sm ml-1 mr-5">{item.location}</Text>
                   </View>
                   
                   <View className="flex-row items-center mt-1">
@@ -407,23 +543,23 @@ const EventsListing = () => {
                   <View className="flex-row justify-between items-center mt-2">
                     <View className="flex-row items-center">
                       <FontAwesome 
-                        name={categoryIcons[item.category]} 
+                        name={categoryIcons[item.category] || "calendar"} 
                         size={14} 
                         color="#006D77" 
                         style={{ marginRight: 6 }}
                       />
-                      <Text className="text-gray-500 text-sm">{item.category}</Text>
+                      <Text className="text-gray-500 text-sm mr-5">{item.category}</Text>
                     </View>
-                    {renderPriceRange(item.price)}
+                    {/* {renderPriceRange(item.price)} */}
                   </View>
                   
-                  <View className="mt-2">
+                  {/* <View className="mt-2">
                     <View className={`rounded-full px-3 py-1 self-start ${getTicketStatusColor(item.ticketStatus)}`}>
                       <Text className="text-xs font-medium">{item.ticketStatus}</Text>
                     </View>
-                  </View>
+                  </View> */}
                   
-                  <View className="flex-row mt-3">
+                  {/* <View className="flex-row mt-3">
                     <TouchableOpacity 
                       className="p-2 bg-gray-100 rounded-full mr-2"
                       onPress={(e) => {
@@ -442,7 +578,7 @@ const EventsListing = () => {
                     >
                       <Feather name="mail" size={16} color="#006D77" />
                     </TouchableOpacity>
-                  </View>
+                  </View> */}
                 </View>
               </View>
               <TouchableOpacity 
@@ -450,7 +586,7 @@ const EventsListing = () => {
                 onPress={() => handleViewDetails(item)}
                 activeOpacity={0.8}
               >
-                <Text className="text-[#006D77] font-semibold">View Details & Tickets</Text>
+                <Text className="text-[#006D77] font-semibold">View Details</Text>
                 <Ionicons name="arrow-forward" size={18} color="#006D77" />
               </TouchableOpacity>
             </TouchableOpacity>
@@ -475,7 +611,7 @@ const EventsListing = () => {
         )}
       </ScrollView>
 
-      {/* Filter Modal */}
+            {/* Filter Modal */}
       <Modal
         visible={filtersOpen}
         animationType="slide"
@@ -510,7 +646,7 @@ const EventsListing = () => {
                       }`}
                     >
                       <FontAwesome 
-                        name={categoryIcons[category]} 
+                        name={categoryIcons[category] || "calendar"} 
                         size={14} 
                         color={activeFilters.category.includes(category) ? "white" : "#4b5563"} 
                         style={{ marginRight: 6 }}
@@ -558,7 +694,7 @@ const EventsListing = () => {
               </View>
               
               {/* Price Type Filter */}
-              <View className="mb-6">
+              {/* <View className="mb-6">
                 <Text className="text-lg font-semibold text-gray-800 mb-3">Price Type</Text>
                 <View className="flex-row flex-wrap">
                   {priceTypes.map((type) => (
@@ -583,7 +719,7 @@ const EventsListing = () => {
                     </TouchableOpacity>
                   ))}
                 </View>
-              </View>
+              </View> */}
               
               {/* Sort By Filter */}
               <View className="mb-6">

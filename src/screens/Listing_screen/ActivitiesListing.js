@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Image, ScrollView, TouchableOpacity, Modal, Linking, Dimensions, ActivityIndicator } from "react-native";
 import { MaterialIcons, Ionicons, FontAwesome5, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import { API_BASE_URL } from '@env';
+import Slider from '@react-native-community/slider';
 
 const { width } = Dimensions.get('window');
 
@@ -11,14 +14,18 @@ const ActivitiesListing = () => {
   const [activeFilters, setActiveFilters] = useState({
     category: [],
     location: [],
-    priceRange: [],
+    priceRange: { min: 0, max: 10000 },
     sortBy: "recommended"
   });
   const [filteredData, setFilteredData] = useState([]);
+  const [activitiesData, setActivitiesData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [tempPriceRange, setTempPriceRange] = useState({ min: 0, max: 10000 });
 
   // Category icons mapping
   const categoryIcons = {
+    "Historical": "landmark",
     "Tours": "map-marked-alt",
     "Adventure": "hiking",
     "Food & Drink": "utensils",
@@ -27,117 +34,64 @@ const ActivitiesListing = () => {
     "Shopping": "shopping-bag"
   };
 
-  // Sample activities data with multiple images and reviews
-  const activitiesData = [
-    { 
-      id: 1, 
-      name: "City Sightseeing Tour", 
-      category: "Tours", 
-      images: [
-        "https://images.unsplash.com/photo-1502602898536-47ad22581b52?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dG91cnxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8d2Fsa2luZyUyMHRvdXJ8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "Downtown",
-      rating: 4.5,
-      priceRange: "$$",
-      website: "https://citytours.com",
-      email: "info@citytours.com",
-      phone: "+1 (555) 123-4567",
-      specialties: ["Guided Tours", "Historical Sites", "Photo Opportunities"],
-      reviews: [
-        {
-          id: 1,
-          user: "Sarah Johnson",
-          rating: 5,
-          comment: "Amazing tour guide! Learned so much about the city's history.",
-          date: "2023-10-20",
-          userImage: "https://randomuser.me/api/portraits/women/12.jpg"
-        },
-        {
-          id: 2,
-          user: "Johnson",
-          rating: 3,
-          comment: "Amazing tour guide! Learned so much about the city's history.",
-          date: "2023-10-20",
-          userImage: "https://randomuser.me/api/portraits/women/12.jpg"
-        },
-        {
-          id: 3,
-          user: "John",
-          rating: 2,
-          comment: "Amazing tour guide! Learned so much about the city's history.",
-          date: "2023-10-20",
-          userImage: "https://randomuser.me/api/portraits/women/12.jpg"
-        },
-        {
-          id: 4,
-          user: "Mike Thompson",
-          rating: 4,
-          comment: "Good tour but a bit rushed in some areas.",
-          date: "2023-10-15",
-          userImage: "https://randomuser.me/api/portraits/men/22.jpg"
-        }
-      ]
-    },
-    { 
-      id: 2, 
-      name: "Mountain Hiking Adventure", 
-      category: "Adventure",
-      images: [
-        "https://images.unsplash.com/photo-1570654621852-9dd25b76b38d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aGlraW5nfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1455757618770-0a58b0b28ebd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8aGlraW5nfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "Mountain Area",
-      rating: 4.8,
-      priceRange: "$$$",
-      website: "https://adventurehikes.com",
-      email: "book@adventurehikes.com",
-      phone: "+1 (555) 234-5678",
-      specialties: ["Expert Guides", "Equipment Provided", "Small Groups"],
-      reviews: [
-        {
-          id: 1,
-          user: "Alex Rodriguez",
-          rating: 5,
-          comment: "Best hiking experience ever! The views were breathtaking.",
-          date: "2023-10-18",
-          userImage: "https://randomuser.me/api/portraits/men/32.jpg"
-        }
-      ]
-    },
-    // Add the rest of your activity items with images arrays and reviews...
-    { 
-      id: 3, 
-      name: "Local Cooking Class", 
-      category: "Food & Drink",
-      images: [
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y29va2luZyUyMGNsYXNzfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1517244683847-7456b63c5969?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y29va2luZyUyMGNsYXNzJTIwZm9vZHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "City Center",
-      rating: 4.7,
-      priceRange: "$$",
-      website: "https://localcooking.com",
-      email: "cooking@localexperience.com",
-      phone: "+1 (555) 345-6789",
-      specialties: ["Hands-on Experience", "Local Ingredients", "Recipes Included"],
-      reviews: [
-        {
-          id: 1,
-          user: "Emma Wilson",
-          rating: 5,
-          comment: "So much fun! The instructor was patient and knowledgeable.",
-          date: "2023-10-12",
-          userImage: "https://randomuser.me/api/portraits/women/42.jpg"
-        }
-      ]
-    },
-    // Add more items following the same pattern...
-  ];
+  // Fetch activities from API
+  const fetchActivities = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/activities`);
+      
+      if (response.data.success) {
+        // Transform API data to match your component structure
+        const transformedData = response.data.data.map(item => ({
+          id: item.id,
+          name: item.title,
+          category: item.type || "Historical",
+          images: item.images && item.images.length > 0 
+            ? item.images.map(img => img.imageUrl) 
+            : ["https://via.placeholder.com/150"],
+          location: item.district || item.city || "Unknown location",
+          rating: item.rating || 4.5,
+          price: item.pricerange, // Keep the actual price value
+          website: "#",
+          email: item.email,
+          phone: item.phone,
+          specialties: [item.type || "Historical"],
+          reviews: [],
+          isActive: item.isActive // Add active status from API
+        }));
+        
+        setActivitiesData(transformedData);
+        setFilteredData(transformedData);
+        
+        // Calculate max price for slider
+        const prices = transformedData.map(item => parseInt(item.price) || 0);
+        const maxPrice = Math.max(...prices);
+        setActiveFilters(prev => ({
+          ...prev,
+          priceRange: { min: 0, max: maxPrice }
+        }));
+        setTempPriceRange({ min: 0, max: maxPrice });
+      } else {
+        setError("Failed to fetch activities");
+      }
+    } catch (err) {
+      console.error("API Error:", err);
+      setError("Failed to load activities. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const categories = ["Tours", "Adventure", "Food & Drink", "Culture", "Water Activities", "Shopping"];
-  const locations = ["Downtown", "City Center", "Mountain Area", "Cultural District", "Harbor", "Vineyard Valley", "Forest Park", "Market District", "Old Town", "Coastal Area"];
-  const priceRanges = ["$", "$$", "$$$"];
+  // Extract unique categories, locations, and price ranges from API data
+  const extractFiltersFromData = () => {
+    const categories = [...new Set(activitiesData.map(item => item.category))];
+    const locations = [...new Set(activitiesData.map(item => item.location))];
+    
+    return { categories, locations };
+  };
+
+  const { categories, locations } = extractFiltersFromData();
   const sortOptions = [
     { id: "recommended", label: "Recommended", icon: "star" },
     { id: "name", label: "Name: A to Z", icon: "sort-alphabetical-ascending" },
@@ -147,19 +101,15 @@ const ActivitiesListing = () => {
     { id: "priceHigh", label: "Price: High to Low", icon: "sort-numeric-descending" }
   ];
 
-  // Simulate loading
+  // Fetch data on component mount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setFilteredData(activitiesData);
-      setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    fetchActivities();
   }, []);
 
   // Apply filters whenever activeFilters changes
   useEffect(() => {
     applyFiltersToData();
-  }, [activeFilters]);
+  }, [activeFilters, activitiesData]);
 
   const applyFiltersToData = () => {
     let result = [...activitiesData];
@@ -179,11 +129,11 @@ const ActivitiesListing = () => {
     }
     
     // Apply price range filter
-    if (activeFilters.priceRange.length > 0) {
-      result = result.filter(item => 
-        activeFilters.priceRange.includes(item.priceRange)
-      );
-    }
+    const { min, max } = activeFilters.priceRange;
+    result = result.filter(item => {
+      const itemPrice = parseInt(item.price) || 0;
+      return itemPrice >= min && itemPrice <= max;
+    });
     
     // Apply sorting
     switch(activeFilters.sortBy) {
@@ -197,10 +147,10 @@ const ActivitiesListing = () => {
         result.sort((a, b) => b.rating - a.rating);
         break;
       case "priceLow":
-        result.sort((a, b) => a.priceRange.length - b.priceRange.length);
+        result.sort((a, b) => (parseInt(a.price) || 0) - (parseInt(b.price) || 0));
         break;
       case "priceHigh":
-        result.sort((a, b) => b.priceRange.length - a.priceRange.length);
+        result.sort((a, b) => (parseInt(b.price) || 0) - (parseInt(a.price) || 0));
         break;
       case "recommended":
       default:
@@ -212,7 +162,7 @@ const ActivitiesListing = () => {
   };
 
   const toggleFilter = (filterType, value) => {
-    if (filterType === "category" || filterType === "location" || filterType === "priceRange") {
+    if (filterType === "category" || filterType === "location") {
       if (activeFilters[filterType].includes(value)) {
         setActiveFilters({
           ...activeFilters,
@@ -230,20 +180,30 @@ const ActivitiesListing = () => {
   };
 
   const clearAllFilters = () => {
+    // Calculate max price for slider
+    const prices = activitiesData.map(item => parseInt(item.price) || 0);
+    const maxPrice = Math.max(...prices);
+    
     setActiveFilters({
       category: [],
       location: [],
-      priceRange: [],
+      priceRange: { min: 0, max: maxPrice },
       sortBy: "recommended"
     });
+    
+    setTempPriceRange({ min: 0, max: maxPrice });
   };
 
   const applyFiltersAndClose = () => {
+    setActiveFilters(prev => ({
+      ...prev,
+      priceRange: tempPriceRange
+    }));
     setFiltersOpen(false);
   };
 
   const handleViewDetails = (item) => {
-    navigation.navigate("ActivityDetails", { activityItem: item });
+    navigation.navigate("ActivityDetails", { activityId: item.id });
   };
 
   const renderStars = (rating) => {
@@ -269,14 +229,12 @@ const ActivitiesListing = () => {
     );
   };
 
-  const renderPriceRange = (priceRange) => {
-    return (
-      <View className="flex-row">
-        {priceRange.split('').map((char, index) => (
-          <Text key={index} className="text-green-600 font-semibold">$</Text>
-        ))}
-      </View>
-    );
+  const renderPrice = (price) => {
+    const priceNum = parseInt(price) || 0;
+    if (priceNum === 0) {
+      return <Text className="text-green-600 font-semibold">Free</Text>;
+    }
+    return <Text className="text-green-600 font-semibold">LKR {priceNum.toLocaleString()}</Text>;
   };
 
   if (loading) {
@@ -284,6 +242,24 @@ const ActivitiesListing = () => {
       <View className="flex-1 bg-gray-50 justify-center items-center">
         <ActivityIndicator size="large" color="#006D77" />
         <Text className="mt-4 text-gray-600">Loading activities...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center p-4">
+        <MaterialCommunityIcons name="alert-circle" size={48} color="#d1d5db" />
+        <Text className="text-gray-500 text-lg mt-4 text-center font-semibold">
+          {error}
+        </Text>
+        <TouchableOpacity 
+          onPress={fetchActivities}
+          className="mt-6 bg-[#006D77] px-6 py-3 rounded-xl flex-row items-center"
+        >
+          <Ionicons name="reload" size={18} color="white" style={{marginRight: 8}} />
+          <Text className="text-white font-semibold">Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -299,14 +275,17 @@ const ActivitiesListing = () => {
           <Text className="text-white text-xl font-bold ml-4">Activities</Text>
         </View>
         <TouchableOpacity 
-          onPress={() => setFiltersOpen(true)}
+          onPress={() => {
+            setTempPriceRange(activeFilters.priceRange);
+            setFiltersOpen(true);
+          }}
           className="p-2 bg-white/20 rounded-full"
         >
           <MaterialIcons name="filter-list" size={24} color="white" />
-          {(activeFilters.category.length > 0 || activeFilters.location.length > 0 || activeFilters.priceRange.length > 0) && (
+          {(activeFilters.category.length > 0 || activeFilters.location.length > 0 || activeFilters.priceRange.min > 0 || activeFilters.priceRange.max < Math.max(...activitiesData.map(item => parseInt(item.price) || 0))) && (
             <View className="absolute -top-1 -right-1 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center">
               <Text className="text-white text-xs font-bold">
-                {activeFilters.category.length + activeFilters.location.length + activeFilters.priceRange.length}
+                {activeFilters.category.length + activeFilters.location.length + 1}
               </Text>
             </View>
           )}
@@ -318,7 +297,7 @@ const ActivitiesListing = () => {
         <Text className="text-gray-600 text-sm">
           {filteredData.length} of {activitiesData.length} options
         </Text>
-        {(activeFilters.category.length > 0 || activeFilters.location.length > 0 || activeFilters.priceRange.length > 0) && (
+        {(activeFilters.category.length > 0 || activeFilters.location.length > 0 || activeFilters.priceRange.min > 0 || activeFilters.priceRange.max < Math.max(...activitiesData.map(item => parseInt(item.price) || 0))) && (
           <TouchableOpacity onPress={clearAllFilters} className="flex-row items-center">
             <Text className="text-[#006D77] text-sm mr-1">Clear filters</Text>
             <Ionicons name="close-circle" size={16} color="#006D77" />
@@ -337,12 +316,26 @@ const ActivitiesListing = () => {
               activeOpacity={0.7}
             >
               <View className="flex-row">
-                <View className="w-24 h-24 rounded-xl overflow-hidden mr-4 relative">
+                <View className="w-28 h-28 rounded-xl overflow-hidden mr-4 relative">
                   <Image 
-                    source={{ uri: item.images?.[0] || item.image }} 
+                    source={{ uri: item.images[0] }} 
                     className="w-full h-full"
                     resizeMode="cover"
                   />
+                  {/* Active Status Badge */}
+                  <View className="absolute top-2 left-2 flex-row">
+                    {/* Active Status Indicator */}
+                    <View className={`rounded-full px-2 py-1 flex-row items-center ${item.isActive ? 'bg-green-100' : 'bg-red-100'}`}>
+                      <Ionicons 
+                        name={item.isActive ? 'checkmark' : 'close'} 
+                        size={12} 
+                        color={item.isActive ? '#16a34a' : '#dc2626'} 
+                      />
+                      <Text className={`text-xs ml-1 ${item.isActive ? 'text-green-800' : 'text-red-800'}`}>
+                        {item.isActive ? 'Available' : 'Unavailable'}
+                      </Text>
+                    </View>
+                  </View>
                   {item.images && item.images.length > 1 && (
                     <View className="absolute bottom-2 right-2 bg-black/50 rounded-full px-2 py-1">
                       <Text className="text-white text-xs">
@@ -353,78 +346,32 @@ const ActivitiesListing = () => {
                 </View>
                 <View className="flex-1">
                   <View className="flex-row justify-between items-start">
-                    <Text className="text-lg font-bold text-gray-800 flex-1 mr-2" numberOfLines={1}>
+                    <Text className="text-lg font-bold text-gray-800 flex-1 mr-2" numberOfLines={5}>
                       {item.name}
                     </Text>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(item.website);
-                      }}
-                      className="p-2 bg-gray-100 rounded-full"
-                    >
-                      <Feather name="external-link" size={16} color="#006D77" />
-                    </TouchableOpacity>
+                    
                   </View>
                   
                   <View className="flex-row items-center mt-1">
                     <Ionicons name="location" size={14} color="#666" />
-                    <Text className="text-gray-500 text-sm ml-1">{item.location}</Text>
+                    <Text className="text-gray-500 text-sm ml-1 mr-5">{item.location}</Text>
                   </View>
                   
                   <View className="flex-row items-center mt-2">
                     {renderStars(item.rating)}
                   </View>
                   
-                  <View className="flex-row justify-between items-center mt-2">
+                  <View className="flex-row justify-between items-center mt-2 mr-4">
                     <View className="flex-row items-center">
                       <FontAwesome5 
-                        name={categoryIcons[item.category]} 
+                        name={categoryIcons[item.category] || "map-marker"} 
                         size={14} 
                         color="#006D77" 
                         style={{ marginRight: 6 }}
                       />
                       <Text className="text-gray-500 text-sm">{item.category}</Text>
                     </View>
-                    {renderPriceRange(item.priceRange)}
-                  </View>
-                  
-                  {item.specialties && item.specialties.length > 0 && (
-                    <View className="flex-row flex-wrap mt-2">
-                      {item.specialties.slice(0, 2).map((specialty, index) => (
-                        <View key={index} className="bg-[#E6F6F8] rounded-full px-2 py-1 mr-1 mb-1">
-                          <Text className="text-[#006D77] text-xs">{specialty}</Text>
-                        </View>
-                      ))}
-                      {item.specialties.length > 2 && (
-                        <View className="bg-[#E6F6F8] rounded-full px-2 py-1">
-                          <Text className="text-[#006D77] text-xs">
-                            +{item.specialties.length - 2}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-                  
-                  <View className="flex-row mt-3">
-                    <TouchableOpacity 
-                      className="p-2 bg-gray-100 rounded-full mr-2"
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(`tel:${item.phone}`);
-                      }}
-                    >
-                      <Feather name="phone" size={16} color="#006D77" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      className="p-2 bg-gray-100 rounded-full mr-2"
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(`mailto:${item.email}`);
-                      }}
-                    >
-                      <Feather name="mail" size={16} color="#006D77" />
-                    </TouchableOpacity>
+                    {renderPrice(item.price)}
                   </View>
                 </View>
               </View>
@@ -433,7 +380,7 @@ const ActivitiesListing = () => {
                 onPress={() => handleViewDetails(item)}
                 activeOpacity={0.8}
               >
-                <Text className="text-[#006D77] font-semibold">View Details & Book</Text>
+                <Text className="text-[#006D77] font-semibold">View Details</Text>
                 <Ionicons name="arrow-forward" size={18} color="#006D77" />
               </TouchableOpacity>
             </TouchableOpacity>
@@ -493,7 +440,7 @@ const ActivitiesListing = () => {
                       }`}
                     >
                       <FontAwesome5 
-                        name={categoryIcons[category]} 
+                        name={categoryIcons[category] || "map-marker"} 
                         size={14} 
                         color={activeFilters.category.includes(category) ? "white" : "#4b5563"} 
                         style={{ marginRight: 6 }}
@@ -542,29 +489,26 @@ const ActivitiesListing = () => {
               
               {/* Price Range Filter */}
               <View className="mb-6">
-                <Text className="text-lg font-semibold text-gray-800 mb-3">Price Range</Text>
-                <View className="flex-row flex-wrap">
-                  {priceRanges.map((range) => (
-                    <TouchableOpacity
-                      key={range}
-                      onPress={() => toggleFilter("priceRange", range)}
-                      className={`px-4 py-2 rounded-full mr-2 mb-2 ${
-                        activeFilters.priceRange.includes(range)
-                          ? "bg-[#006D77]"
-                          : "bg-gray-100"
-                      }`}
-                    >
-                      <Text
-                        className={
-                          activeFilters.priceRange.includes(range)
-                            ? "text-white font-semibold"
-                            : "text-gray-700"
-                        }
-                      >
-                        {range}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                <Text className="text-lg font-semibold text-gray-800 mb-3">
+                  Price Range: LKR {tempPriceRange.min.toLocaleString()} - LKR {tempPriceRange.max.toLocaleString()}
+                </Text>
+                <View className="px-2">
+                  <Slider
+                    minimumValue={0}
+                    maximumValue={Math.max(...activitiesData.map(item => parseInt(item.price) || 0))}
+                    step={100}
+                    minimumTrackTintColor="#006D77"
+                    maximumTrackTintColor="#d1d5db"
+                    thumbTintColor="#006D77"
+                    value={tempPriceRange.max}
+                    onValueChange={(value) => {
+                      setTempPriceRange(prev => ({ ...prev, max: value }));
+                    }}
+                  />
+                  <View className="flex-row justify-between mt-2">
+                    <Text className="text-gray-500">LKR 0</Text>
+                    <Text className="text-gray-500">LKR {Math.max(...activitiesData.map(item => parseInt(item.price) || 0)).toLocaleString()}</Text>
+                  </View>
                 </View>
               </View>
               

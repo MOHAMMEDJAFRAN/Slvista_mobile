@@ -1,82 +1,61 @@
-import React, { useState } from "react";
-import { View, Text, Image, ScrollView, TouchableOpacity, Linking, FlatList, Dimensions, Share, TextInput } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, Image, ScrollView, TouchableOpacity, Linking, FlatList, Dimensions, Share, TextInput, ActivityIndicator } from "react-native";
 import { Ionicons, MaterialIcons, Feather, MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import axios from "axios";
+import { API_BASE_URL } from '@env';
 
 const { width } = Dimensions.get('window');
 
 const ActivityDetails = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { activityItem } = route.params;
+  const { activityId } = route.params;
+  const [activityItem, setActivityItem] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [expandedSection, setExpandedSection] = useState(null);
   const [userRating, setUserRating] = useState(0);
   const [userReview, setUserReview] = useState("");
   const [userHasReviewed, setUserHasReviewed] = useState(false);
-  const [reviewsToShow, setReviewsToShow] = useState(2); // Number of reviews to initially display
+  const [reviewsToShow, setReviewsToShow] = useState(2);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Sample images if only one image is provided
-  const images = activityItem.images || [activityItem.image];
-  
-  // Sample specialties data
-  const specialties = activityItem.specialties || [
-    "Guided Experience",
-    "Small Groups",
-    "Equipment Provided",
-    "Local Experts",
-    "Photo Opportunities"
-  ];
-
-  // Sample reviews data with user images
-  const reviews = activityItem.reviews || [
-    {
-      id: 1,
-      user: "Sarah Johnson",
-      rating: 5,
-      comment: "Amazing experience! The guide was knowledgeable and made the activity so enjoyable. Would definitely recommend to anyone visiting the area.",
-      date: "2023-10-20",
-      userImage: "https://randomuser.me/api/portraits/women/12.jpg"
-    },
-    {
-      id: 2,
-      user: "Mike Thompson",
-      rating: 4,
-      comment: "Great activity but a bit rushed in some areas. Overall had a wonderful time and learned a lot.",
-      date: "2023-10-15",
-      userImage: "https://randomuser.me/api/portraits/men/22.jpg"
-    },
-    {
-      id: 3,
-      user: "Emma Wilson",
-      rating: 5,
-      comment: "Absolutely loved this activity! The instructors were patient and made sure everyone had a great experience. Will do it again!",
-      date: "2023-10-12",
-      userImage: null // This will use the default image
-    },
-    {
-      id: 4,
-      user: "David Brown",
-      rating: 4,
-      comment: "Well organized and fun experience. The guides were professional and safety-conscious.",
-      date: "2023-10-10",
-      userImage: "https://randomuser.me/api/portraits/men/32.jpg"
-    },
-    {
-      id: 5,
-      user: "Lisa Garcia",
-      rating: 5,
-      comment: "One of the best activities I've done on vacation! Worth every penny.",
-      date: "2023-10-08",
-      userImage: "https://randomuser.me/api/portraits/women/45.jpg"
+  // Fetch activity details from API
+  const fetchActivityDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/activities/${activityId}`);
+      
+      if (response.data.success) {
+        setActivityItem(response.data.data);
+      } else {
+        setError("Failed to fetch activity details");
+      }
+    } catch (err) {
+      console.error("API Error:", err);
+      setError("Failed to load activity details. Please try again.");
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    if (activityId) {
+      fetchActivityDetails();
+    }
+  }, [activityId]);
 
   // Default user image
   const defaultUserImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
+  // Default placeholder image
+  const placeholderImage = "https://via.placeholder.com/400x300?text=No+Image+Available";
+
   // Category icons mapping
   const categoryIcons = {
+    "Historical": { icon: "landmark", library: FontAwesome5 },
     "Tours": { icon: "map-marked-alt", library: FontAwesome5 },
     "Adventure": { icon: "hiking", library: FontAwesome5 },
     "Food & Drink": { icon: "utensils", library: FontAwesome5 },
@@ -92,6 +71,45 @@ const ActivityDetails = () => {
     return <IconComponent name={iconConfig.icon} size={16} color="#006D77" />;
   };
 
+  // Display actual price instead of converting to range
+  const renderPrice = (price) => {
+    if (!price) return <Text className="text-green-600 font-semibold">Price not available</Text>;
+    
+    const priceNum = parseInt(price);
+    if (priceNum === 0) {
+      return <Text className="text-green-600 font-semibold">Free</Text>;
+    }
+    return <Text className="text-green-600 font-semibold">LKR {priceNum.toLocaleString()}</Text>;
+  };
+
+  // Sample specialties data (not provided by API)
+  const specialties = [
+    "Guided Experience",
+    "Small Groups",
+    "Local Experts",
+    "Photo Opportunities"
+  ];
+
+  // Sample reviews data (not provided by API)
+  const reviews = [
+    {
+      id: 1,
+      user: "Sarah Johnson",
+      rating: 5,
+      comment: "Amazing experience! The guide was knowledgeable and made the activity so enjoyable. Would definitely recommend to anyone visiting the area.",
+      date: "2023-10-20",
+      userImage: "https://randomuser.me/api/portraits/women/12.jpg"
+    },
+    {
+      id: 2,
+      user: "Mike Thompson",
+      rating: 4,
+      comment: "Great activity but a bit rushed in some areas. Overall had a wonderful time and learned a lot.",
+      date: "2023-10-15",
+      userImage: "https://randomuser.me/api/portraits/men/22.jpg"
+    }
+  ];
+
   // Toggle section expansion
   const toggleSection = (section) => {
     if (expandedSection === section) {
@@ -99,6 +117,99 @@ const ActivityDetails = () => {
     } else {
       setExpandedSection(section);
     }
+  };
+
+  // Improved image carousel with manual navigation
+  const ImageCarousel = ({ images }) => {
+    if (!images || images.length === 0) {
+      return (
+        <View className="h-72 w-full bg-gray-200 justify-center items-center">
+          <Ionicons name="image" size={48} color="#9ca3af" />
+          <Text className="text-gray-500 mt-2">No images available</Text>
+        </View>
+      );
+    }
+
+    const goToNext = () => {
+      setActiveIndex((prevIndex) => 
+        prevIndex === images.length - 1 ? 0 : prevIndex + 1
+      );
+    };
+
+    const goToPrev = () => {
+      setActiveIndex((prevIndex) => 
+        prevIndex === 0 ? images.length - 1 : prevIndex - 1
+      );
+    };
+
+    return (
+      <View className="h-72 w-full relative">
+        <Image 
+          source={{ uri: images[activeIndex]?.imageUrl || placeholderImage }} 
+          className="w-full h-full"
+          resizeMode="cover"
+          onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
+        />
+        
+        {/* Status badges */}
+        <View className="absolute top-2 left-2 flex-row">
+          {/* Active Status badge */}
+          {activityItem?.isActive !== undefined && (
+            <View className={`rounded-full px-2 py-1 flex-row items-center mr-2 ${activityItem.isActive ? 'bg-green-500' : 'bg-red-500'}`}>
+              <Ionicons 
+                name={activityItem.isActive ? 'checkmark' : 'close'} 
+                size={12} 
+                color="white" 
+              />
+              <Text className="text-white text-xs ml-1">
+                {activityItem.isActive ? 'Available' : 'Unavailable'}
+              </Text>
+            </View>
+          )}
+        </View>
+        
+        {/* Navigation arrows */}
+        {images.length > 1 && (
+          <>
+            <TouchableOpacity 
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-2"
+              onPress={goToPrev}
+            >
+              <Ionicons name="chevron-back" size={24} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-2"
+              onPress={goToNext}
+            >
+              <Ionicons name="chevron-forward" size={24} color="white" />
+            </TouchableOpacity>
+          </>
+        )}
+        
+        {/* Image counter */}
+        {images.length > 1 && (
+          <View className="absolute top-4 right-4 bg-black/50 rounded-full px-3 py-1">
+            <Text className="text-white text-sm">
+              {activeIndex + 1}/{images.length}
+            </Text>
+          </View>
+        )}
+        
+        {/* Pagination indicators */}
+        {images.length > 1 && (
+          <View className="absolute bottom-4 flex-row justify-center w-full">
+            {images.map((_, index) => (
+              <View
+                key={index}
+                className={`h-2 w-2 rounded-full mx-1 ${
+                  index === activeIndex ? "bg-white" : "bg-gray-300"
+                }`}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
   };
 
   const renderStars = (rating, size = 16, interactive = false) => {
@@ -130,30 +241,6 @@ const ActivityDetails = () => {
     );
   };
 
-  const renderPriceRange = (priceRange) => {
-    return (
-      <View className="flex-row items-center">
-        {priceRange.split('').map((char, index) => (
-          <Text key={index} className="text-green-600 font-semibold">$</Text>
-        ))}
-        <Text className="text-gray-500 text-sm ml-1">
-          ({priceRange.length === 1 ? 'Budget' : priceRange.length === 2 ? 'Moderate' : 'Premium'})
-        </Text>
-      </View>
-    );
-  };
-
-  const renderImageItem = ({ item }) => (
-    <View className="h-72 w-full">
-      <Image 
-        source={{ uri: item }} 
-        className="w-full h-full"
-        resizeMode="cover"
-        onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
-      />
-    </View>
-  );
-
   const renderReviewItem = ({ item }) => (
     <View className="bg-gray-50 p-4 rounded-xl mb-4">
       <View className="flex-row items-center">
@@ -180,9 +267,8 @@ const ActivityDetails = () => {
   const shareActivity = async () => {
     try {
       await Share.share({
-        message: `Check out ${activityItem.name} - ${activityItem.category} experience in ${activityItem.location}. Rating: ${activityItem.rating}/5. ${activityItem.website || ''}`,
-        url: activityItem.website,
-        title: activityItem.name
+        message: `Check out ${activityItem.title} - ${activityItem.type} experience in ${activityItem.district || activityItem.city}. Price: ${activityItem.pricerange ? `LKR ${parseInt(activityItem.pricerange).toLocaleString()}` : 'Contact for price'}`,
+        title: activityItem.title
       });
     } catch (error) {
       console.error('Error sharing:', error);
@@ -206,6 +292,40 @@ const ActivityDetails = () => {
     setReviewsToShow(prev => Math.min(prev + 3, reviews.length));
   };
 
+  if (loading) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center">
+        <ActivityIndicator size="large" color="#006D77" />
+        <Text className="mt-4 text-gray-600">Loading activity details...</Text>
+      </View>
+    );
+  }
+
+  if (error || !activityItem) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center p-4">
+        <MaterialCommunityIcons name="alert-circle" size={48} color="#d1d5db" />
+        <Text className="text-gray-500 text-lg mt-4 text-center font-semibold">
+          {error || "Activity not found"}
+        </Text>
+        <TouchableOpacity 
+          onPress={fetchActivityDetails}
+          className="mt-6 bg-[#006D77] px-6 py-3 rounded-xl flex-row items-center"
+        >
+          <Ionicons name="reload" size={18} color="white" style={{marginRight: 8}} />
+          <Text className="text-white font-semibold">Try Again</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()}
+          className="mt-4 bg-gray-200 px-6 py-3 rounded-xl flex-row items-center"
+        >
+          <Ionicons name="arrow-back" size={18} color="#4b5563" style={{marginRight: 8}} />
+          <Text className="text-gray-700 font-semibold">Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View className="flex-1 bg-gray-50">
       {/* Header */}
@@ -221,64 +341,38 @@ const ActivityDetails = () => {
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Image Carousel */}
-        <View className="relative">
-          <FlatList
-            data={images}
-            renderItem={renderImageItem}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item, index) => index.toString()}
-            onMomentumScrollEnd={(event) => {
-              const index = Math.floor(event.nativeEvent.contentOffset.x / width);
-              setActiveIndex(index);
-            }}
-          />
-          {/* Image counter */}
-          {images.length > 1 && (
-            <View className="absolute top-4 right-4 bg-black/50 rounded-full px-3 py-1">
-              <Text className="text-white text-sm">
-                {activeIndex + 1}/{images.length}
-              </Text>
-            </View>
-          )}
-          {/* Pagination indicators */}
-          {images.length > 1 && (
-            <View className="absolute bottom-4 flex-row justify-center w-full">
-              {images.map((_, index) => (
-                <View
-                  key={index}
-                  className={`h-2 w-2 rounded-full mx-1 ${
-                    index === activeIndex ? "bg-white" : "bg-gray-300"
-                  }`}
-                />
-              ))}
-            </View>
-          )}
-        </View>
-
+        <ImageCarousel images={activityItem.images} />
+        
         {/* Details */}
         <View className="p-5 bg-white rounded-t-3xl -mt-6">
           <View className="flex-row justify-between items-start">
             <View className="flex-1">
-              <Text className="text-2xl font-bold text-gray-800">{activityItem.name}</Text>
+              <Text className="text-2xl font-bold text-gray-800">{activityItem.title}</Text>
               <View className="flex-row items-center mt-2">
                 <Ionicons name="location" size={16} color="#666" />
-                <Text className="text-gray-600 text-sm ml-2">{activityItem.location}</Text>
+                <Text className="text-gray-600 text-sm ml-2">
+                  {activityItem.district || activityItem.city || "Unknown location"}
+                </Text>
               </View>
             </View>
-            <View className="bg-[#E6F6F8] px-3 py-1 rounded-full flex-row items-center">
-              {getCategoryIcon(activityItem.category)}
-              <Text className="text-[#006D77] text-sm ml-1 font-medium">{activityItem.category}</Text>
+            <View className="items-end">
+              <View className="bg-[#E6F6F8] px-3 py-1 rounded-full flex-row items-center mb-2">
+                {getCategoryIcon(activityItem.type)}
+                <Text className="text-[#006D77] text-sm ml-1 font-medium">{activityItem.type}</Text>
+              </View>
+      
+              
             </View>
           </View>
           
+          {/* Using a default rating since API doesn't provide it */}
           <View className="mt-4">
-            {renderStars(activityItem.rating)}
+            {renderStars(activityItem.rating || 4.5)}
           </View>
           
+          {/* Display actual price */}
           <View className="mt-2">
-            {renderPriceRange(activityItem.priceRange)}
+            {renderPrice(activityItem.pricerange)}
           </View>
           
           {/* Quick Actions */}
@@ -297,15 +391,6 @@ const ActivityDetails = () => {
               <Ionicons name="mail" size={20} color="#006D77" />
               <Text className="text-[#006D77] font-medium ml-2">Email</Text>
             </TouchableOpacity>
-            {activityItem.website && (
-              <TouchableOpacity 
-                className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
-                onPress={() => Linking.openURL(activityItem.website)}
-              >
-                <Ionicons name="globe" size={20} color="#006D77" />
-                <Text className="text-[#006D77] font-medium ml-2">Website</Text>
-              </TouchableOpacity>
-            )}
           </View>
 
           {/* Specialties Section */}
@@ -324,10 +409,9 @@ const ActivityDetails = () => {
           <View className="mt-6">
             <Text className="text-lg font-semibold text-gray-800 mb-3">About This Activity</Text>
             <Text className="text-gray-600 text-sm leading-6">
-              {activityItem.name} is a wonderful {activityItem.category.toLowerCase()} experience located in {activityItem.location}. 
-              With a rating of {activityItem.rating}, it's highly recommended by visitors. This activity is 
-              {activityItem.priceRange.length === 1 ? ' budget-friendly' : activityItem.priceRange.length === 2 ? ' moderately priced' : ' a premium experience'}.
-              {activityItem.specialties && ` It includes ${activityItem.specialties.slice(0, 2).join(', ').toLowerCase()} and more.`}
+              {activityItem.description || 
+                `${activityItem.title} is a wonderful ${activityItem.type.toLowerCase()} experience located in ${activityItem.district || activityItem.city}. 
+                This activity offers a unique experience for visitors.`}
             </Text>
           </View>
 
@@ -451,6 +535,7 @@ const ActivityDetails = () => {
             onPress={() => Linking.openURL(`https://wa.me/${activityItem.phone.replace(/\D/g, '')}`)}
           >
             <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+            <Text className="text-[#006D77] font-medium ml-2">WhatsApp</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -1,26 +1,44 @@
-import React, { useState } from "react";
-import { View, Text, Image, ScrollView, TouchableOpacity, Linking, FlatList, Dimensions, Share, TextInput } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, Image, ScrollView, TouchableOpacity, Linking, FlatList, Dimensions, Share, TextInput, ActivityIndicator } from "react-native";
 import { Ionicons, MaterialIcons, Feather, MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import axios from "axios";
+import { API_BASE_URL } from '@env';
 
 const { width } = Dimensions.get('window');
 
 const FoodBeverageDetails = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { foodItem } = route.params;
+  const { foodItem, itemId } = route.params;
   const [activeIndex, setActiveIndex] = useState(0);
   const [expandedSection, setExpandedSection] = useState(null);
   const [userRating, setUserRating] = useState(0);
   const [userReview, setUserReview] = useState("");
   const [userHasReviewed, setUserHasReviewed] = useState(false);
-  const [reviewsToShow, setReviewsToShow] = useState(2); // Number of reviews to initially display
+  const [reviewsToShow, setReviewsToShow] = useState(2);
+  const [loading, setLoading] = useState(!foodItem);
+  const [error, setError] = useState(null);
+  const [details, setDetails] = useState(foodItem || {});
 
-  // Sample images if only one image is provided
-  const images = foodItem.images || [foodItem.image];
-  
-  // Sample specialties data
-  const specialties = foodItem.specialties || [
+  // Category icons mapping
+  const categoryIcons = {
+    "Restaurant": { icon: "utensils", library: FontAwesome5 },
+    "Cafe": { icon: "coffee", library: FontAwesome5 },
+    "Bar": { icon: "glass-martini-alt", library: FontAwesome5 },
+    "Street Food": { icon: "hotdog", library: MaterialCommunityIcons },
+    "Bakery": { icon: "bread-slice", library: MaterialCommunityIcons },
+    "Dessert": { icon: "ice-cream", library: MaterialCommunityIcons }
+  };
+
+  // Default user image
+  const defaultUserImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+
+  // Default placeholder image
+  const placeholderImage = "https://via.placeholder.com/400x300?text=No+Image+Available";
+
+  // Sample specialties data (fallback if API doesn't provide)
+  const specialties = details.specialties || [
     "Fresh Ingredients",
     "Vegetarian Options",
     "Gluten-Free Options",
@@ -28,8 +46,8 @@ const FoodBeverageDetails = () => {
     "Takeaway Available"
   ];
 
-  // Sample reviews data with user images
-  const reviews = foodItem.reviews || [
+  // Sample reviews data (fallback if API doesn't provide)
+  const reviews = [
     {
       id: 1,
       user: "Michael Johnson",
@@ -45,45 +63,56 @@ const FoodBeverageDetails = () => {
       comment: "Great food and friendly staff. The portions were generous and everything was fresh. Would definitely come back again.",
       date: "2023-10-15",
       userImage: "https://randomuser.me/api/portraits/women/22.jpg"
-    },
-    {
-      id: 3,
-      user: "Robert Chen",
-      rating: 5,
-      comment: "Absolutely loved the food here! The flavors were amazing and the presentation was beautiful. Highly recommend!",
-      date: "2023-10-12",
-      userImage: null // This will use the default image
-    },
-    {
-      id: 4,
-      user: "Emily Davis",
-      rating: 4,
-      comment: "Cozy atmosphere with delicious food. The service was prompt and the menu had great variety.",
-      date: "2023-10-10",
-      userImage: "https://randomuser.me/api/portraits/women/45.jpg"
-    },
-    {
-      id: 5,
-      user: "David Wilson",
-      rating: 5,
-      comment: "Best dining experience in town! Every dish was a masterpiece. Will definitely be returning soon.",
-      date: "2023-10-08",
-      userImage: "https://randomuser.me/api/portraits/men/28.jpg"
     }
   ];
 
-  // Default user image
-  const defaultUserImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+  // Fetch details from API if we only have an ID
+  useEffect(() => {
+    const fetchFoodDetails = async () => {
+      if (foodItem) {
+        // We already have the food item data
+        setLoading(false);
+        return;
+      }
 
-  // Category icons mapping
-  const categoryIcons = {
-    "Restaurant": { icon: "utensils", library: FontAwesome5 },
-    "Cafe": { icon: "coffee", library: FontAwesome5 },
-    "Bar": { icon: "glass-martini-alt", library: FontAwesome5 },
-    "Street Food": { icon: "hotdog", library: MaterialCommunityIcons },
-    "Bakery": { icon: "bread-slice", library: MaterialCommunityIcons },
-    "Dessert": { icon: "ice-cream", library: MaterialCommunityIcons }
-  };
+      try {
+        setLoading(true);
+        const response = await axios.get(`${API_BASE_URL}/api/v1/food-and-beverages/${itemId}`);
+        
+        if (response.data.success) {
+          // Transform API data to match your component structure
+          const transformedData = {
+            id: response.data.data.id,
+            name: response.data.data.name,
+            category: response.data.data.cuisineType || "Restaurant",
+            images: response.data.data.images ? response.data.data.images.map(img => img.imageUrl) : [],
+            location: response.data.data.province || "Western",
+            rating: response.data.data.rating || 4.5, // Default rating since API doesn't provide
+            priceRange: "$$", // Default price range since API doesn't provide
+            website: response.data.data.website,
+            email: response.data.data.email,
+            phone: response.data.data.phone,
+            description: response.data.data.description,
+            specialties: response.data.data.cuisineType ? [response.data.data.cuisineType] : ["Local Cuisine"],
+            reviews: [], // Empty reviews since API doesn't provide
+            isActive: response.data.data.isActive // Add active status from API
+          };
+          
+          setDetails(transformedData);
+          setError(null);
+        } else {
+          setError("Failed to fetch details from server");
+        }
+      } catch (err) {
+        console.error("Error fetching food details:", err);
+        setError("Failed to connect to server");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFoodDetails();
+  }, [foodItem, itemId]);
 
   // Get the appropriate icon component for the category
   const getCategoryIcon = (category) => {
@@ -99,6 +128,99 @@ const FoodBeverageDetails = () => {
     } else {
       setExpandedSection(section);
     }
+  };
+
+  // Improved image carousel with manual navigation
+  const ImageCarousel = ({ images }) => {
+    if (!images || images.length === 0) {
+      return (
+        <View className="h-72 w-full bg-gray-200 justify-center items-center">
+          <Ionicons name="image" size={48} color="#9ca3af" />
+          <Text className="text-gray-500 mt-2">No images available</Text>
+        </View>
+      );
+    }
+
+    const goToNext = () => {
+      setActiveIndex((prevIndex) => 
+        prevIndex === images.length - 1 ? 0 : prevIndex + 1
+      );
+    };
+
+    const goToPrev = () => {
+      setActiveIndex((prevIndex) => 
+        prevIndex === 0 ? images.length - 1 : prevIndex - 1
+      );
+    };
+
+    return (
+      <View className="h-72 w-full relative">
+        <Image 
+          source={{ uri: images[activeIndex] || placeholderImage }} 
+          className="w-full h-full"
+          resizeMode="cover"
+          onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
+        />
+        
+        {/* Status badges */}
+        <View className="absolute top-2 left-2 flex-row">
+          {/* Active Status badge */}
+          {details.isActive !== undefined && (
+            <View className={`rounded-full px-2 py-1 flex-row items-center mr-2 ${details.isActive ? 'bg-green-500' : 'bg-red-500'}`}>
+              <Ionicons 
+                name={details.isActive ? 'checkmark' : 'close'} 
+                size={12} 
+                color="white" 
+              />
+              <Text className="text-white text-xs ml-1">
+                {details.isActive ? 'Available' : 'Unavailable'}
+              </Text>
+            </View>
+          )}
+        </View>
+        
+        {/* Navigation arrows */}
+        {images.length > 1 && (
+          <>
+            <TouchableOpacity 
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-2"
+              onPress={goToPrev}
+            >
+              <Ionicons name="chevron-back" size={24} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-2"
+              onPress={goToNext}
+            >
+              <Ionicons name="chevron-forward" size={24} color="white" />
+            </TouchableOpacity>
+          </>
+        )}
+        
+        {/* Image counter */}
+        {images.length > 1 && (
+          <View className="absolute top-4 right-4 bg-black/50 rounded-full px-3 py-1">
+            <Text className="text-white text-sm">
+              {activeIndex + 1}/{images.length}
+            </Text>
+          </View>
+        )}
+        
+        {/* Pagination indicators */}
+        {images.length > 1 && (
+          <View className="absolute bottom-4 flex-row justify-center w-full">
+            {images.map((_, index) => (
+              <View
+                key={index}
+                className={`h-2 w-2 rounded-full mx-1 ${
+                  index === activeIndex ? "bg-white" : "bg-gray-300"
+                }`}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
   };
 
   const renderStars = (rating, size = 16, interactive = false) => {
@@ -143,17 +265,6 @@ const FoodBeverageDetails = () => {
     );
   };
 
-  const renderImageItem = ({ item }) => (
-    <View className="h-72 w-full">
-      <Image 
-        source={{ uri: item }} 
-        className="w-full h-full"
-        resizeMode="cover"
-        onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
-      />
-    </View>
-  );
-
   const renderReviewItem = ({ item }) => (
     <View className="bg-gray-50 p-4 rounded-xl mb-4">
       <View className="flex-row items-center">
@@ -180,9 +291,9 @@ const FoodBeverageDetails = () => {
   const shareFoodItem = async () => {
     try {
       await Share.share({
-        message: `Check out ${foodItem.name} - ${foodItem.category} in ${foodItem.location}. Rating: ${foodItem.rating}/5. ${foodItem.website || ''}`,
-        url: foodItem.website,
-        title: foodItem.name
+        message: `Check out ${details.name} - ${details.category} in ${details.location}. Rating: ${details.rating}/5. ${details.website || ''}`,
+        url: details.website,
+        title: details.name
       });
     } catch (error) {
       console.error('Error sharing:', error);
@@ -206,6 +317,38 @@ const FoodBeverageDetails = () => {
     setReviewsToShow(prev => Math.min(prev + 3, reviews.length));
   };
 
+  if (loading) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center">
+        <ActivityIndicator size="large" color="#006D77" />
+        <Text className="mt-4 text-gray-600">Loading food & beverage details...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center p-4">
+        <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#dc2626" />
+        <Text className="text-red-600 text-lg mt-4 text-center font-semibold">{error}</Text>
+        <Text className="text-gray-500 text-sm mt-2 text-center">
+          Please check your connection and try again
+        </Text>
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()}
+          className="mt-6 bg-[#006D77] px-6 py-3 rounded-xl"
+        >
+          <Text className="text-white font-semibold">Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Use images from API or fallback
+  const images = details.images && details.images.length > 0 
+    ? details.images 
+    : [placeholderImage];
+
   return (
     <View className="flex-1 bg-gray-50">
       {/* Header */}
@@ -221,86 +364,58 @@ const FoodBeverageDetails = () => {
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Image Carousel */}
-        <View className="relative">
-          <FlatList
-            data={images}
-            renderItem={renderImageItem}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item, index) => index.toString()}
-            onMomentumScrollEnd={(event) => {
-              const index = Math.floor(event.nativeEvent.contentOffset.x / width);
-              setActiveIndex(index);
-            }}
-          />
-          {/* Image counter */}
-          {images.length > 1 && (
-            <View className="absolute top-4 right-4 bg-black/50 rounded-full px-3 py-1">
-              <Text className="text-white text-sm">
-                {activeIndex + 1}/{images.length}
-              </Text>
-            </View>
-          )}
-          {/* Pagination indicators */}
-          {images.length > 1 && (
-            <View className="absolute bottom-4 flex-row justify-center w-full">
-              {images.map((_, index) => (
-                <View
-                  key={index}
-                  className={`h-2 w-2 rounded-full mx-1 ${
-                    index === activeIndex ? "bg-white" : "bg-gray-300"
-                  }`}
-                />
-              ))}
-            </View>
-          )}
-        </View>
-
+        <ImageCarousel images={images} />
+        
         {/* Details */}
         <View className="p-5 bg-white rounded-t-3xl -mt-6">
           <View className="flex-row justify-between items-start">
             <View className="flex-1">
-              <Text className="text-2xl font-bold text-gray-800">{foodItem.name}</Text>
+              <Text className="text-2xl font-bold text-gray-800">{details.name}</Text>
               <View className="flex-row items-center mt-2">
                 <Ionicons name="location" size={16} color="#666" />
-                <Text className="text-gray-600 text-sm ml-2">{foodItem.location}</Text>
+                <Text className="text-gray-600 text-sm ml-2">{details.location}</Text>
               </View>
             </View>
-            <View className="bg-[#E6F6F8] px-3 py-1 rounded-full flex-row items-center">
-              {getCategoryIcon(foodItem.category)}
-              <Text className="text-[#006D77] text-sm ml-1 font-medium">{foodItem.category}</Text>
+            <View className="items-end">
+              <View className="bg-[#E6F6F8] px-3 py-1 rounded-full flex-row items-center mb-2">
+                {getCategoryIcon(details.category)}
+                <Text className="text-[#006D77] text-sm ml-1 font-medium">{details.category}</Text>
+              </View>
             </View>
           </View>
           
           <View className="mt-4">
-            {renderStars(foodItem.rating)}
+            {renderStars(details.rating)}
           </View>
           
-          <View className="mt-2">
-            {renderPriceRange(foodItem.priceRange)}
-          </View>
+          {/* <View className="mt-2">
+            {renderPriceRange(details.priceRange)}
+          </View> */}
           
           {/* Quick Actions */}
           <View className="flex-row justify-between mt-6 mb-2">
-            <TouchableOpacity 
-              className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
-              onPress={() => Linking.openURL(`tel:${foodItem.phone}`)}
-            >
-              <Ionicons name="call" size={20} color="#006D77" />
-              <Text className="text-[#006D77] font-medium ml-2">Call</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
-              onPress={() => Linking.openURL(`mailto:${foodItem.email}`)}
-            >
-              <Ionicons name="mail" size={20} color="#006D77" />
-              <Text className="text-[#006D77] font-medium ml-2">Email</Text>
-            </TouchableOpacity>
-            {foodItem.website && (
+            {details.phone && (
               <TouchableOpacity 
                 className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
-                onPress={() => Linking.openURL(foodItem.website)}
+                onPress={() => Linking.openURL(`tel:${details.phone}`)}
+              >
+                <Ionicons name="call" size={20} color="#006D77" />
+                <Text className="text-[#006D77] font-medium ml-2">Call</Text>
+              </TouchableOpacity>
+            )}
+            {details.email && (
+              <TouchableOpacity 
+                className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
+                onPress={() => Linking.openURL(`mailto:${details.email}`)}
+              >
+                <Ionicons name="mail" size={20} color="#006D77" />
+                <Text className="text-[#006D77] font-medium ml-2">Email</Text>
+              </TouchableOpacity>
+            )}
+            {details.website && (
+              <TouchableOpacity 
+                className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
+                onPress={() => Linking.openURL(details.website)}
               >
                 <Ionicons name="globe" size={20} color="#006D77" />
                 <Text className="text-[#006D77] font-medium ml-2">Website</Text>
@@ -321,34 +436,14 @@ const FoodBeverageDetails = () => {
           </View>
           
           {/* About Section */}
-          <View className="mt-6">
-            <Text className="text-lg font-semibold text-gray-800 mb-3">Description</Text>
-            <Text className="text-gray-600 text-sm leading-6 ">
-              {foodItem.name} is a wonderful {foodItem.category.toLowerCase()} located in {foodItem.location}. 
-              With a rating of {foodItem.rating}, it's highly recommended by visitors. This establishment offers 
-              {foodItem.priceRange.length === 1 ? ' budget-friendly' : foodItem.priceRange.length === 2 ? ' moderately priced' : ' premium'} 
-              options and specializes in {specialties.slice(0, 2).join(', ').toLowerCase()} and more.
-            </Text>
-          </View>
-
-          {/* Operating Hours */}
-          <View className="mt-6">
-            <Text className="text-lg font-semibold text-gray-800 mb-3">Operating Hours</Text>
-            <View>
-              <View className="flex-row justify-between py-2 border-b border-gray-100">
-                <Text className="text-gray-600">Monday - Thursday</Text>
-                <Text className="text-gray-800 font-medium">11:00 AM - 10:00 PM</Text>
-              </View>
-              <View className="flex-row justify-between py-2 border-b border-gray-100">
-                <Text className="text-gray-600">Friday - Saturday</Text>
-                <Text className="text-gray-800 font-medium">11:00 AM - 11:00 PM</Text>
-              </View>
-              <View className="flex-row justify-between py-2">
-                <Text className="text-gray-600">Sunday</Text>
-                <Text className="text-gray-800 font-medium">12:00 PM - 9:00 PM</Text>
-              </View>
+          {details.description && (
+            <View className="mt-6">
+              <Text className="text-lg font-semibold text-gray-800 mb-3">Description</Text>
+              <Text className="text-gray-600 text-sm leading-6 ">
+                {details.description}
+              </Text>
             </View>
-          </View>
+          )}
 
           {/* Your Review Section */}
           <TouchableOpacity 
@@ -458,19 +553,23 @@ const FoodBeverageDetails = () => {
       {/* Action Button */}
       <View className="p-5 bg-white border-t border-gray-200">
         <View className="flex-row">
-          <TouchableOpacity 
-            className="flex-1 bg-[#006D77] p-4 rounded-xl mr-2 flex-row items-center justify-center"
-            onPress={() => Linking.openURL(`tel:${foodItem.phone}`)}
-          >
-            <Ionicons name="call" size={20} color="white" />
-            <Text className="text-white font-bold text-lg ml-2">Call to Reserve</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            className="bg-white border border-[#006D77] p-4 rounded-xl ml-2 flex-row items-center justify-center"
-            onPress={() => Linking.openURL(`https://wa.me/${foodItem.phone.replace(/\D/g, '')}`)}
-          >
-            <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
-          </TouchableOpacity>
+          {details.phone && (
+            <TouchableOpacity 
+              className="flex-1 bg-[#006D77] p-4 rounded-xl mr-2 flex-row items-center justify-center"
+              onPress={() => Linking.openURL(`tel:${details.phone}`)}
+            >
+              <Ionicons name="call" size={20} color="white" />
+              <Text className="text-white font-bold text-lg ml-2">Call to Reserve</Text>
+            </TouchableOpacity>
+          )}
+          {details.phone && (
+            <TouchableOpacity 
+              className="bg-white border border-[#006D77] p-4 rounded-xl ml-2 flex-row items-center justify-center"
+              onPress={() => Linking.openURL(`https://wa.me/${details.phone.replace(/\D/g, '')}`)}
+            >
+              <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>

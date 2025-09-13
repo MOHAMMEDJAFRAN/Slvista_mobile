@@ -1,7 +1,9 @@
-import React, { useState } from "react";
-import { View, Text, Image, ScrollView, TouchableOpacity, Linking, FlatList, Dimensions, Share, TextInput } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, Image, ScrollView, TouchableOpacity, Linking, FlatList, Dimensions, Share, TextInput, Alert, ActivityIndicator } from "react-native";
 import { Ionicons, MaterialIcons, Feather, MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import axios from "axios";
+import { API_BASE_URL } from '@env';
 
 const { width } = Dimensions.get('window');
 
@@ -14,22 +16,58 @@ const TransportDetails = () => {
   const [userRating, setUserRating] = useState(0);
   const [userReview, setUserReview] = useState("");
   const [userHasReviewed, setUserHasReviewed] = useState(false);
-  const [reviewsToShow, setReviewsToShow] = useState(2); // Number of reviews to initially display
+  const [reviewsToShow, setReviewsToShow] = useState(2);
+  const [loading, setLoading] = useState(false);
+  const [agencyDetails, setAgencyDetails] = useState(null);
+  const [images, setImages] = useState([]);
 
-  // Sample images if only one image is provided
-  const images = transportItem.images || [transportItem.image];
-  
-  // Sample specialties data
-  const specialties = transportItem.specialties || [
-    "24/7 Service",
-    "Luxury Vehicles",
-    "Airport Transfers",
-    "Corporate Travel",
-    "Child Seats Available"
-  ];
+  // Fetch agency details with images
+  useEffect(() => {
+    if (transportItem.id) {
+      fetchAgencyDetails();
+    }
+  }, [transportItem]);
 
-  // Sample reviews data with user images
-  const reviews = transportItem.reviews || [
+  const fetchAgencyDetails = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/transport-agencies/${transportItem.id}`);
+      
+      if (response.data.success) {
+        const agencyData = response.data.data;
+        setAgencyDetails(agencyData);
+        
+        // Set images from database
+        if (agencyData.images && agencyData.images.length > 0) {
+          setImages(agencyData.images.map(img => img.imageUrl));
+        } else {
+          // Fallback if no images in database
+          setImages(["https://via.placeholder.com/400x300?text=No+Transport+Image"]);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching agency details:", error);
+      Alert.alert("Error", "Failed to load agency details");
+      // Set fallback image on error
+      setImages(["https://via.placeholder.com/400x300?text=Image+Load+Error"]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Use agency details if available, otherwise use the passed transportItem
+  const agencyData = agencyDetails || transportItem;
+
+  // Create specialties from API data
+  const specialties = [
+    agencyData.serviceArea && `Service Area: ${agencyData.serviceArea}`,
+    agencyData.vistaVerified && "Vista Verified",
+    agencyData.transportTypes && agencyData.transportTypes.length > 0 && 
+      `Vehicle Types: ${agencyData.transportTypes.map(t => t.name).join(", ")}`
+  ].filter(Boolean);
+
+  // Sample reviews (in a real app, you would fetch these from your API)
+  const reviews = [
     {
       id: 1,
       user: "John Doe",
@@ -52,7 +90,7 @@ const TransportDetails = () => {
       rating: 5,
       comment: "Best transport service in town. Highly recommended! I've used them multiple times for business trips and they're always reliable.",
       date: "2023-10-05",
-      userImage: null // This will use the default image
+      userImage: null
     },
     {
       id: 4,
@@ -61,14 +99,6 @@ const TransportDetails = () => {
       comment: "Great service overall. The car was clean and the driver was on time. Would recommend for airport transfers.",
       date: "2023-10-01",
       userImage: "https://randomuser.me/api/portraits/women/15.jpg"
-    },
-    {
-      id: 5,
-      user: "Michael Brown",
-      rating: 5,
-      comment: "Exceptional service! The driver went above and beyond to make our journey comfortable. Will definitely use again.",
-      date: "2023-09-25",
-      userImage: "https://randomuser.me/api/portraits/men/18.jpg"
     }
   ];
 
@@ -87,7 +117,8 @@ const TransportDetails = () => {
     Flight: { icon: "airplane", library: MaterialCommunityIcons },
     Helicopter: { icon: "helicopter", library: MaterialCommunityIcons },
     Boat: { icon: "ship", library: MaterialCommunityIcons },
-    Ship: { icon: "ship", library: MaterialCommunityIcons }
+    Ship: { icon: "ship", library: MaterialCommunityIcons },
+    threewheelars: { icon: "rickshaw", library: MaterialCommunityIcons }
   };
 
   // Get the appropriate icon component for the transport type
@@ -95,6 +126,30 @@ const TransportDetails = () => {
     const iconConfig = transportIcons[type] || { icon: "directions-car", library: MaterialIcons };
     const IconComponent = iconConfig.library;
     return <IconComponent name={iconConfig.icon} size={16} color="#006D77" />;
+  };
+
+  // Get all transport types for display with icons
+  const renderTransportTypes = () => {
+    if (agencyData.transportTypes && agencyData.transportTypes.length > 0) {
+      return (
+        <View className="flex-row flex-wrap mt-2">
+          {agencyData.transportTypes.map((type, index) => (
+            <View key={index} className="flex-row items-center bg-[#E6F6F8] rounded-full px-3 py-1 mr-2 mb-2">
+              {getTransportIcon(type.name)}
+              <Text className="text-[#006D77] text-xs font-medium ml-1">{type.name}</Text>
+            </View>
+          ))}
+        </View>
+      );
+    }
+    return (
+      <View className="flex-row items-center bg-[#E6F6F8] rounded-full px-3 py-1">
+        {getTransportIcon(agencyData.type)}
+        <Text className="text-[#006D77] text-xs font-medium ml-1">
+          {agencyData.type || "Transport Service"}
+        </Text>
+      </View>
+    );
   };
 
   // Toggle section expansion
@@ -135,16 +190,117 @@ const TransportDetails = () => {
     );
   };
 
-  const renderImageItem = ({ item }) => (
-    <View className="h-72 w-full">
+  const renderImageItem = ({ item, index }) => (
+    <View className="h-72 w-full relative">
       <Image 
         source={{ uri: item }} 
         className="w-full h-full"
         resizeMode="cover"
-        onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
+        onError={(e) => {
+          console.log('Image loading error:', e.nativeEvent.error);
+          // Replace failed image with placeholder
+          const newImages = [...images];
+          newImages[index] = "https://via.placeholder.com/400x300?text=Image+Error";
+          setImages(newImages);
+        }}
       />
+      {/* Vista Verified badge */}
+      {agencyData.vistaVerified && index === 0 && (
+        <View className="absolute top-2 left-2 bg-green-500 rounded-full px-2 py-1 flex-row items-center">
+          <Ionicons name="checkmark" size={12} color="white" />
+          <Text className="text-white text-xs ml-1">Verified</Text>
+        </View>
+      )}
     </View>
   );
+
+  // Improved manual image carousel
+  const renderImageCarousel = () => {
+    if (images.length === 0) {
+      return (
+        <View className="h-72 w-full bg-gray-200 justify-center items-center">
+          <Ionicons name="image-outline" size={48} color="#9ca3af" />
+          <Text className="text-gray-500 mt-2">No images available</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View className="h-72 w-full relative">
+        {/* Main image */}
+        <Image 
+          source={{ uri: images[activeIndex] }} 
+          className="w-full h-full"
+          resizeMode="cover"
+        />
+        
+        {/* Status badges */}
+        <View className="absolute top-2 left-2 flex-row">
+          {/* Vista Verified badge */}
+          {agencyData.vistaVerified && (
+            <View className="bg-green-500 rounded-full px-2 py-1 flex-row items-center mr-2">
+              <Ionicons name="checkmark" size={12} color="white" />
+              <Text className="text-white text-xs ml-1">Verified</Text>
+            </View>
+          )}
+          
+          {/* Active Status badge */}
+          <View className={`rounded-full px-2 py-1 flex-row items-center ${agencyData.isActive ? 'bg-green-500' : 'bg-red-500'}`}>
+            <Ionicons 
+              name={agencyData.isActive ? 'checkmark' : 'close'} 
+              size={12} 
+              color="white" 
+            />
+            <Text className="text-white text-xs ml-1">
+              {agencyData.isActive ? 'Available' : 'Unavailable'}
+            </Text>
+          </View>
+        </View>
+        
+        {/* Navigation arrows for multiple images */}
+        {images.length > 1 && (
+          <>
+            <TouchableOpacity 
+              className="absolute left-2 top-1/2 -translate-y-4 bg-black/50 rounded-full p-2"
+              onPress={() => setActiveIndex((activeIndex - 1 + images.length) % images.length)}
+            >
+              <Ionicons name="chevron-back" size={24} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              className="absolute right-2 top-1/2 -translate-y-4 bg-black/50 rounded-full p-2"
+              onPress={() => setActiveIndex((activeIndex + 1) % images.length)}
+            >
+              <Ionicons name="chevron-forward" size={24} color="white" />
+            </TouchableOpacity>
+          </>
+        )}
+        
+        {/* Image counter */}
+        {images.length > 1 && (
+          <View className="absolute top-4 right-4 bg-black/50 rounded-full px-3 py-1">
+            <Text className="text-white text-sm">
+              {activeIndex + 1}/{images.length}
+            </Text>
+          </View>
+        )}
+        
+        {/* Thumbnail strip for multiple images */}
+        {images.length > 1 && (
+          <View className="absolute bottom-4 left-0 right-0 flex-row justify-center">
+            {images.map((_, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => setActiveIndex(index)}
+                className={`h-2 w-2 rounded-full mx-1 ${
+                  index === activeIndex ? "bg-white" : "bg-gray-300"
+                }`}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   const renderReviewItem = ({ item }) => (
     <View className="bg-gray-50 p-4 rounded-xl mb-4">
@@ -172,31 +328,47 @@ const TransportDetails = () => {
   const shareTransport = async () => {
     try {
       await Share.share({
-        message: `Check out ${transportItem.name} - ${transportItem.type} service in ${transportItem.location}. Rating: ${transportItem.rating}/5. ${transportItem.website}`,
-        url: transportItem.website,
-        title: transportItem.name
+        message: `Check out ${agencyData.title || agencyData.name} - ${getTransportTypesText()} service. ${agencyData.website}`,
+        url: agencyData.website,
+        title: agencyData.title || agencyData.name
       });
     } catch (error) {
       console.error('Error sharing:', error);
     }
   };
 
+  // Helper function to get transport types as text
+  const getTransportTypesText = () => {
+    if (agencyData.transportTypes && agencyData.transportTypes.length > 0) {
+      return agencyData.transportTypes.map(t => t.name).join(", ");
+    }
+    return agencyData.type || "Transport Service";
+  };
+
   const submitReview = () => {
     if (userRating > 0 && userReview.trim() !== "") {
       // In a real app, you would send this to your backend
-      alert(`Thank you for your ${userRating} star review!`);
+      Alert.alert("Thank you!", `Thank you for your ${userRating} star review!`);
       setUserReview("");
       setUserRating(0);
       setUserHasReviewed(true);
     } else {
-      alert("Please provide both a rating and review text.");
+      Alert.alert("Error", "Please provide both a rating and review text.");
     }
   };
 
   const loadMoreReviews = () => {
-    // Show 3 more reviews each time the button is clicked
     setReviewsToShow(prev => Math.min(prev + 3, reviews.length));
   };
+
+  if (loading) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center">
+        <ActivityIndicator size="large" color="#006D77" />
+        <Text className="mt-4 text-gray-600">Loading transport details...</Text>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -214,107 +386,112 @@ const TransportDetails = () => {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Image Carousel */}
         <View className="relative">
-          <FlatList
-            data={images}
-            renderItem={renderImageItem}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item, index) => index.toString()}
-            onMomentumScrollEnd={(event) => {
-              const index = Math.floor(event.nativeEvent.contentOffset.x / width);
-              setActiveIndex(index);
-            }}
-          />
-          {/* Image counter */}
-          {images.length > 1 && (
-            <View className="absolute top-4 right-4 bg-black/50 rounded-full px-3 py-1">
-              <Text className="text-white text-sm">
-                {activeIndex + 1}/{images.length}
-              </Text>
-            </View>
-          )}
-          {/* Pagination indicators */}
-          {images.length > 1 && (
-            <View className="absolute bottom-4 flex-row justify-center w-full">
-              {images.map((_, index) => (
-                <View
-                  key={index}
-                  className={`h-2 w-2 rounded-full mx-1 ${
-                    index === activeIndex ? "bg-white" : "bg-gray-300"
-                  }`}
-                />
-              ))}
-            </View>
-          )}
+          {renderImageCarousel()}
         </View>
 
         {/* Details */}
         <View className="p-5 bg-white rounded-t-3xl -mt-6">
           <View className="flex-row justify-between items-start">
             <View className="flex-1">
-              <Text className="text-2xl font-bold text-gray-800">{transportItem.name}</Text>
+              <Text className="text-2xl font-bold text-gray-800">{agencyData.title || agencyData.name}</Text>
               <View className="flex-row items-center mt-2">
                 <Ionicons name="location" size={16} color="#666" />
-                <Text className="text-gray-600 text-sm ml-2">{transportItem.location}</Text>
+                <Text className="text-gray-600 text-sm ml-2">
+                  {agencyData.city || agencyData.district || agencyData.location || "Location not specified"}
+                </Text>
               </View>
             </View>
-            <View className="bg-[#E6F6F8] px-3 py-1 rounded-full flex-row items-center">
-              {getTransportIcon(transportItem.type)}
-              <Text className="text-[#006D77] text-sm ml-1 font-medium">{transportItem.type}</Text>
+            <View className="items-end">
+              {agencyData.vistaVerified && (
+                <View className="bg-green-100 px-3 py-1 rounded-full flex-row items-center mb-2">
+                  <Ionicons name="checkmark" size={14} color="#16a34a" />
+                  <Text className="text-green-800 text-xs ml-1 font-medium">Verified</Text>
+                </View>
+              )}
+              
             </View>
           </View>
           
           <View className="mt-4">
-            {renderStars(transportItem.rating)}
+            {renderStars(agencyData.rating || 4.2)}
+          </View>
+          
+          {/* Transport Types */}
+          <View className="mt-4">
+            <Text className="text-lg font-semibold text-gray-800 mb-2">Available Vehicles</Text>
+            {renderTransportTypes()}
           </View>
           
           {/* Quick Actions */}
           <View className="flex-row justify-between mt-6 mb-2">
-            <TouchableOpacity 
-              className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
-              onPress={() => Linking.openURL(`tel:${transportItem.phone}`)}
-            >
-              <Ionicons name="call" size={20} color="#006D77" />
-              <Text className="text-[#006D77] font-medium ml-2">Call</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
-              onPress={() => Linking.openURL(`mailto:${transportItem.email}`)}
-            >
-              <Ionicons name="mail" size={20} color="#006D77" />
-              <Text className="text-[#006D77] font-medium ml-2">Email</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
-              onPress={() => Linking.openURL(transportItem.website)}
-            >
-              <Ionicons name="globe" size={20} color="#006D77" />
-              <Text className="text-[#006D77] font-medium ml-2">Website</Text>
-            </TouchableOpacity>
+            {agencyData.phone && (
+              <TouchableOpacity 
+                className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
+                onPress={() => Linking.openURL(`tel:${agencyData.phone}`)}
+              >
+                <Ionicons name="call" size={20} color="#006D77" />
+                <Text className="text-[#006D77] font-medium ml-2">Call</Text>
+              </TouchableOpacity>
+            )}
+            {agencyData.email && (
+              <TouchableOpacity 
+                className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
+                onPress={() => Linking.openURL(`mailto:${agencyData.email}`)}
+              >
+                <Ionicons name="mail" size={20} color="#006D77" />
+                <Text className="text-[#006D77] font-medium ml-2">Email</Text>
+              </TouchableOpacity>
+            )}
+            {agencyData.website && (
+              <TouchableOpacity 
+                className="flex-1 bg-[#E6F6F8] p-3 rounded-xl mx-1 flex-row items-center justify-center"
+                onPress={() => Linking.openURL(agencyData.website)}
+              >
+                <Ionicons name="globe" size={20} color="#006D77" />
+                <Text className="text-[#006D77] font-medium ml-2">Website</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
-          {/* Specialties Section */}
-          <View className="mt-6">
-            <Text className="text-lg font-semibold text-gray-800 mb-3">Specialties</Text>
-            <View className="flex-row flex-wrap">
-              {specialties.map((specialty, index) => (
-                <View key={index} className="bg-[#E6F6F8] rounded-full px-3 py-2 mr-2 mb-2">
-                  <Text className="text-[#006D77] text-xs font-medium">{specialty}</Text>
+          {/* Address Information */}
+          {(agencyData.address || agencyData.district || agencyData.province) && (
+            <View className="mt-6">
+              <Text className="text-lg font-semibold text-gray-800 mb-3">Address</Text>
+              <View className="flex-row items-start">
+                <Ionicons name="location" size={16} color="#006D77" className="mt-1" />
+                <View className="ml-3 flex-1">
+                  {agencyData.address && <Text className="text-gray-800">{agencyData.address}</Text>}
+                  {agencyData.city && <Text className="text-gray-600">{agencyData.city}</Text>}
+                  {agencyData.district && <Text className="text-gray-600">{agencyData.district}</Text>}
+                  {agencyData.province && <Text className="text-gray-600">{agencyData.province}</Text>}
                 </View>
-              ))}
+              </View>
             </View>
-          </View>
+          )}
+
+          {/* Specialties Section */}
+          {specialties.length > 0 && (
+            <View className="mt-6">
+              <Text className="text-lg font-semibold text-gray-800 mb-3">Specialties</Text>
+              <View className="flex-row flex-wrap">
+                {specialties.map((specialty, index) => (
+                  <View key={index} className="bg-[#E6F6F8] rounded-full px-3 py-2 mr-2 mb-2">
+                    <Text className="text-[#006D77] text-xs font-medium">{specialty}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
           
           {/* About Section */}
-          <View className="mt-6">
-            <Text className="text-lg font-semibold text-gray-800 mb-3">About</Text>
-            <Text className="text-gray-600 text-sm leading-6">
-              {transportItem.name} provides excellent {transportItem.type.toLowerCase()} services in the {transportItem.location} area. 
-              With a rating of {transportItem.rating}, they are committed to providing quality transportation solutions 
-              for all your needs. They specialize in {specialties.slice(0, 2).join(', ').toLowerCase()} and more.
-            </Text>
-          </View>
+          {agencyData.description && (
+            <View className="mt-6">
+              <Text className="text-lg font-semibold text-gray-800 mb-3">About</Text>
+              <Text className="text-gray-600 text-sm leading-6">
+                {agencyData.description}
+              </Text>
+            </View>
+          )}
 
           {/* Cancellation Policy Section */}
           <TouchableOpacity 
@@ -392,54 +569,6 @@ const TransportDetails = () => {
                   <View className="ml-3 flex-1">
                     <Text className="text-gray-800 font-medium">Luggage information</Text>
                     <Text className="text-gray-600 text-sm mt-1">Please specify if you have oversized luggage when booking</Text>
-                  </View>
-                </View>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Safety Measures Section */}
-          <TouchableOpacity 
-            className="mt-6"
-            onPress={() => toggleSection('safety')}
-            activeOpacity={0.7}
-          >
-            <View className="flex-row justify-between items-center">
-              <Text className="text-lg font-semibold text-gray-800">Safety Measures</Text>
-              <Ionicons 
-                name={expandedSection === 'safety' ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color="#666" 
-              />
-            </View>
-            {expandedSection === 'safety' && (
-              <View className="mt-3">
-                <View className="flex-row items-start py-2">
-                  <Ionicons name="construct-outline" size={16} color="#006D77" className="mt-1" />
-                  <View className="ml-3 flex-1">
-                    <Text className="text-gray-800 font-medium">Regular vehicle maintenance</Text>
-                    <Text className="text-gray-600 text-sm mt-1">All vehicles undergo regular inspections and maintenance</Text>
-                  </View>
-                </View>
-                <View className="flex-row items-start py-2">
-                  <Ionicons name="medical-outline" size={16} color="#006D77" className="mt-1" />
-                  <View className="ml-3 flex-1">
-                    <Text className="text-gray-800 font-medium">First aid kits</Text>
-                    <Text className="text-gray-600 text-sm mt-1">First aid kits available in all vehicles for emergencies</Text>
-                  </View>
-                </View>
-                <View className="flex-row items-start py-2">
-                  <Ionicons name="person-outline" size={16} color="#006D77" className="mt-1" />
-                  <View className="ml-3 flex-1">
-                    <Text className="text-gray-800 font-medium">Experienced drivers</Text>
-                    <Text className="text-gray-600 text-sm mt-1">All drivers are licensed, experienced, and background-checked</Text>
-                  </View>
-                </View>
-                <View className="flex-row items-start py-2">
-                  <Ionicons name="shield-checkmark-outline" size={16} color="#006D77" className="mt-1" />
-                  <View className="ml-3 flex-1">
-                    <Text className="text-gray-800 font-medium">Sanitization protocols</Text>
-                    <Text className="text-gray-600 text-sm mt-1">Vehicles are thoroughly cleaned and sanitized between rides</Text>
                   </View>
                 </View>
               </View>
@@ -554,19 +683,23 @@ const TransportDetails = () => {
       {/* Action Button */}
       <View className="p-5 bg-white border-t border-gray-200">
         <View className="flex-row">
-          <TouchableOpacity 
-            className="flex-1 bg-[#006D77] p-4 rounded-xl mr-2 flex-row items-center justify-center"
-            onPress={() => Linking.openURL(`tel:${transportItem.phone}`)}
-          >
-            <Ionicons name="call" size={20} color="white" />
-            <Text className="text-white font-bold text-lg ml-2">Call to Book</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            className="bg-white border border-[#006D77] p-4 rounded-xl ml-2 flex-row items-center justify-center"
-            onPress={() => Linking.openURL(`https://wa.me/${transportItem.phone.replace(/\D/g, '')}`)}
-          >
-            <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
-          </TouchableOpacity>
+          {agencyData.phone && (
+            <TouchableOpacity 
+              className="flex-1 bg-[#006D77] p-4 rounded-xl mr-2 flex-row items-center justify-center"
+              onPress={() => Linking.openURL(`tel:${agencyData.phone}`)}
+            >
+              <Ionicons name="call" size={20} color="white" />
+              <Text className="text-white font-bold text-lg ml-2">Call to Book</Text>
+            </TouchableOpacity>
+          )}
+          {agencyData.phone && (
+            <TouchableOpacity 
+              className="bg-white border border-[#006D77] p-4 rounded-xl ml-2 flex-row items-center justify-center"
+              onPress={() => Linking.openURL(`https://wa.me/${agencyData.phone.replace(/\D/g, '')}`)}
+            >
+              <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>

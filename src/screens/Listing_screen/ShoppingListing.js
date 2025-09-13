@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Image, ScrollView, TouchableOpacity, Modal, Linking, ActivityIndicator } from "react-native";
 import { MaterialIcons, Ionicons, FontAwesome, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import { API_BASE_URL } from '@env';
 
 const ShoppingListing = () => {
   const navigation = useNavigation();
@@ -15,162 +17,35 @@ const ShoppingListing = () => {
   });
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [apiData, setApiData] = useState([]);
+  const [error, setError] = useState(null);
 
-  // Category icons mapping
+  // Category icons mapping - updated based on your API categories
   const categoryIcons = {
-    "Shopping Mall": "shopping-cart",
-    "Local Market": "store",
-    "Fashion": "tshirt",
+    "Jewelry": "diamond",
+    "Clothing": "tshirt",
     "Electronics": "mobile",
-    "Home Goods": "home",
-    "Food Market": "shopping-basket",
-    "Antiques": "history",
-    "Sports": "futbol-o"
+    "Food": "shopping-basket",
+    "Home": "home",
+    "Sports": "futbol-o",
+    "Books": "book",
+    "Other": "shopping-cart",
+    // Add more categories as needed based on your API data
   };
 
-  // Sample shopping data with additional details
-  const shoppingData = [
-    {
-      id: 1,
-      name: "City Center Mall",
-      category: "Shopping Mall",
-      images: [
-        "https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8c2hvcHBpbmclMjBtYWxsfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1590649880760-2d4b0f523de7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8c2hvcHBpbmclMjBtYWxsfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "Downtown District",
-      rating: 4.5,
-      priceRange: "$$$",
-      availability: "Open Now",
-      website: "https://citycentermall.com",
-      email: "info@citycentermall.com",
-      phone: "+1 (555) 123-4567",
-      hours: "9:00 AM - 10:00 PM",
-      description: "Largest shopping mall in the city with 200+ stores, food court, cinema, and entertainment facilities.",
-      products: [
-        { name: "Clothing", price: "$20-$200" },
-        { name: "Electronics", price: "$50-$2000" },
-        { name: "Home Decor", price: "$15-$500" },
-        { name: "Jewelry", price: "$30-$1500" }
-      ],
-      reviews: [
-        {
-          id: 1,
-          user: "Sarah Johnson",
-          rating: 5,
-          comment: "Great mall with a wide variety of stores. The food court has excellent options!",
-          date: "2023-10-15",
-          userImage: "https://randomuser.me/api/portraits/women/12.jpg"
-        }
-      ]
-    },
-    {
-      id: 2,
-      name: "Artisan Craft Market",
-      category: "Local Market",
-      images: [
-        "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YXJ0aXNhbiUyMG1hcmtldHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fG1hcmtldHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "Old Town Square",
-      rating: 4.8,
-      priceRange: "$$",
-      availability: "Open Now",
-      website: "https://artisanmarket.com",
-      email: "contact@artisanmarket.com",
-      phone: "+1 (555) 234-5678",
-      hours: "8:00 AM - 8:00 PM",
-      description: "Charming market featuring handmade crafts, local artisans, and unique souvenirs. Perfect for finding one-of-a-kind items.",
-      products: [
-        { name: "Handmade Jewelry", price: "$15-$120" },
-        { name: "Pottery", price: "$25-$200" },
-        { name: "Textiles", price: "$20-$150" },
-        { name: "Wood Crafts", price: "$30-$250" }
-      ],
-      reviews: [
-        {
-          id: 1,
-          user: "Mike Thompson",
-          rating: 4,
-          comment: "Loved the unique handmade items. Great place to find special gifts.",
-          date: "2023-10-12",
-          userImage: "https://randomuser.me/api/portraits/men/22.jpg"
-        }
-      ]
-    },
-    {
-      id: 3,
-      name: "Tech Gadget Hub",
-      category: "Electronics",
-      images: [
-        "https://images.unsplash.com/photo-1498049794561-7780e7231661?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTZ8fGVsZWN0cm9uaWNzJTIwc3RvcmV8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1607083206968-13611e3d76db?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTV8fGVsZWN0cm9uaWNzfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "Tech Plaza",
-      rating: 4.6,
-      priceRange: "$$$",
-      availability: "Open Now",
-      website: "https://techgadgethub.com",
-      email: "support@techgadgethub.com",
-      phone: "+1 (555) 345-6789",
-      hours: "10:00 AM - 9:00 PM",
-      description: "Premiere destination for the latest gadgets, electronics, and tech accessories. Expert staff available for consultations.",
-      products: [
-        { name: "Smartphones", price: "$200-$1500" },
-        { name: "Laptops", price: "$500-$3000" },
-        { name: "Headphones", price: "$50-$400" },
-        { name: "Smart Watches", price: "$150-$800" }
-      ],
-      reviews: [
-        {
-          id: 1,
-          user: "David Kim",
-          rating: 5,
-          comment: "Best place for tech gadgets! Knowledgeable staff and great prices.",
-          date: "2023-10-10",
-          userImage: "https://randomuser.me/api/portraits/men/32.jpg"
-        }
-      ]
-    },
-    {
-      id: 4,
-      name: "Fresh Produce Market",
-      category: "Food Market",
-      images: [
-        "https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Z3JvY2VyeSUyMHN0b3JlfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60",
-        "https://images.unsplash.com/photo-1574856344991-aaa31b6f4ce3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8ZnJlc2glMjBwcm9kdWNlfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60"
-      ],
-      location: "Farmers Market Area",
-      rating: 4.7,
-      priceRange: "$",
-      availability: "Closed",
-      website: "https://freshproducemarket.com",
-      email: "hello@freshproducemarket.com",
-      phone: "+1 (555) 456-7890",
-      hours: "7:00 AM - 6:00 PM",
-      description: "Vibrant market offering fresh fruits, vegetables, and local produce. Supporting local farmers and sustainable agriculture.",
-      products: [
-        { name: "Fresh Fruits", price: "$2-$10" },
-        { name: "Vegetables", price: "$1-$8" },
-        { name: "Organic Products", price: "$3-$15" },
-        { name: "Local Honey", price: "$8-$20" }
-      ],
-      reviews: [
-        {
-          id: 1,
-          user: "Emma Wilson",
-          rating: 4,
-          comment: "Fresh and affordable produce. Love supporting local farmers!",
-          date: "2023-10-08",
-          userImage: "https://randomuser.me/api/portraits/women/42.jpg"
-        }
-      ]
-    },
-    // Add more shopping destinations following the same pattern...
-  ];
+  // Get unique categories from API data
+  const getCategories = () => {
+    const categories = [...new Set(apiData.map(item => item.category))];
+    return categories.filter(category => category !== null && category !== undefined);
+  };
 
-  const categories = ["Shopping Mall", "Local Market", "Fashion", "Electronics", "Home Goods", "Food Market", "Antiques", "Sports"];
-  const locations = ["Downtown District", "Old Town Square", "Tech Plaza", "Farmers Market Area", "Fashion District", "Design District", "Historic District", "Stadium Complex"];
+  // Get unique locations from API data
+  const getLocations = () => {
+    const cities = [...new Set(apiData.map(item => item.city))];
+    const provinces = [...new Set(apiData.map(item => item.province))];
+    return [...cities, ...provinces].filter(location => location !== null && location !== undefined);
+  };
+
   const priceRanges = ["$", "$$", "$$$", "$$$$"];
   const availabilityOptions = ["Open Now", "Closed"];
   const sortOptions = [
@@ -178,26 +53,42 @@ const ShoppingListing = () => {
     { id: "name", label: "Name: A to Z", icon: "sort-alphabetical-ascending" },
     { id: "nameDesc", label: "Name: Z to A", icon: "sort-alphabetical-descending" },
     { id: "rating", label: "Highest Rated", icon: "sort-descending" },
-    { id: "price", label: "Price: Low to High", icon: "sort-numeric-ascending" },
-    { id: "priceDesc", label: "Price: High to Low", icon: "sort-numeric-descending" }
+    { id: "createdAt", label: "Newest First", icon: "sort-descending" },
+    { id: "createdAtDesc", label: "Oldest First", icon: "sort-ascending" }
   ];
 
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setFilteredData(shoppingData);
+  // Fetch data from API
+  const fetchShoppingData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/shopping`);
+      
+      if (response.data.success) {
+        setApiData(response.data.data);
+        setFilteredData(response.data.data);
+      } else {
+        setError("Failed to fetch data");
+      }
+    } catch (err) {
+      console.error("API Error:", err);
+      setError("Failed to connect to server");
+    } finally {
       setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    }
+  };
+
+  useEffect(() => {
+    fetchShoppingData();
   }, []);
 
   // Apply filters whenever activeFilters changes
   useEffect(() => {
     applyFiltersToData();
-  }, [activeFilters]);
+  }, [activeFilters, apiData]);
 
   const applyFiltersToData = () => {
-    let result = [...shoppingData];
+    let result = [...apiData];
     
     // Apply category filter
     if (activeFilters.category.length > 0) {
@@ -209,22 +100,24 @@ const ShoppingListing = () => {
     // Apply location filter
     if (activeFilters.location.length > 0) {
       result = result.filter(item => 
-        activeFilters.location.includes(item.location)
+        activeFilters.location.includes(item.city) || 
+        activeFilters.location.includes(item.province)
       );
     }
     
-    // Apply price range filter
+    // Apply price range filter (you might need to adjust this based on your API data)
     if (activeFilters.priceRange.length > 0) {
-      result = result.filter(item => 
-        activeFilters.priceRange.includes(item.priceRange)
-      );
+      // Since your API doesn't have priceRange, we'll skip this filter
+      // You might want to add priceRange to your API or handle differently
     }
     
     // Apply availability filter
     if (activeFilters.availability.length > 0) {
-      result = result.filter(item => 
-        activeFilters.availability.includes(item.availability)
-      );
+      // Map API isActive to availability options
+      result = result.filter(item => {
+        const availability = item.isActive ? "Open Now" : "Closed";
+        return activeFilters.availability.includes(availability);
+      });
     }
     
     // Apply sorting
@@ -236,13 +129,14 @@ const ShoppingListing = () => {
         result.sort((a, b) => b.name.localeCompare(a.name));
         break;
       case "rating":
-        result.sort((a, b) => b.rating - a.rating);
+        // Your API doesn't have rating, so we'll sort by name as fallback
+        result.sort((a, b) => a.name.localeCompare(b.name));
         break;
-      case "price":
-        result.sort((a, b) => a.priceRange.length - b.priceRange.length);
+      case "createdAt":
+        result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         break;
-      case "priceDesc":
-        result.sort((a, b) => b.priceRange.length - a.priceRange.length);
+      case "createdAtDesc":
+        result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
         break;
       case "recommended":
       default:
@@ -290,9 +184,11 @@ const ShoppingListing = () => {
   };
 
   const renderStars = (rating) => {
+    // Since your API doesn't have rating, we'll show a placeholder
+    const placeholderRating = 4.0; // You can remove this when you add ratings to your API
     const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
+    const fullStars = Math.floor(placeholderRating);
+    const hasHalfStar = placeholderRating % 1 !== 0;
     
     for (let i = 1; i <= 5; i++) {
       if (i <= fullStars) {
@@ -307,23 +203,26 @@ const ShoppingListing = () => {
     return (
       <View className="flex-row items-center">
         {stars}
-        <Text className="text-gray-600 ml-1 text-sm">({rating})</Text>
+        <Text className="text-gray-600 ml-1 text-sm">({placeholderRating})</Text>
       </View>
     );
   };
 
-  const renderPriceRange = (priceRange) => {
+  const renderPriceRange = () => {
+    // Placeholder since your API doesn't have price range
     return (
       <View className="flex-row">
-        {priceRange.split('').map((char, index) => (
-          <Text key={index} className="text-green-600 font-semibold">$</Text>
-        ))}
+        <Text className="text-green-600 font-semibold">$$</Text>
       </View>
     );
   };
 
-  const getAvailabilityColor = (status) => {
-    return status === "Open Now" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800";
+  const getAvailabilityColor = (isActive) => {
+    return isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800";
+  };
+
+  const getAvailabilityText = (isActive) => {
+    return isActive ? "Open Now" : "Closed";
   };
 
   if (loading) {
@@ -331,6 +230,27 @@ const ShoppingListing = () => {
       <View className="flex-1 bg-gray-50 justify-center items-center">
         <ActivityIndicator size="large" color="#006D77" />
         <Text className="mt-4 text-gray-600">Loading shopping destinations...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center p-4">
+        <MaterialCommunityIcons name="alert-circle" size={48} color="#dc2626" />
+        <Text className="text-red-600 text-lg mt-4 text-center font-semibold">
+          {error}
+        </Text>
+        <Text className="text-gray-500 text-sm mt-2 text-center">
+          Please check your connection and try again
+        </Text>
+        <TouchableOpacity 
+          onPress={fetchShoppingData}
+          className="mt-6 bg-[#006D77] px-6 py-3 rounded-xl flex-row items-center"
+        >
+          <Ionicons name="refresh" size={18} color="white" style={{marginRight: 8}} />
+          <Text className="text-white font-semibold">Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -363,7 +283,7 @@ const ShoppingListing = () => {
       {/* Results Summary */}
       <View className="p-4 bg-white border-b border-gray-200 flex-row justify-between items-center">
         <Text className="text-gray-600 text-sm">
-          {filteredData.length} of {shoppingData.length} destinations
+          {filteredData.length} of {apiData.length} destinations
         </Text>
         {(activeFilters.category.length > 0 || activeFilters.location.length > 0 || activeFilters.priceRange.length > 0 || activeFilters.availability.length > 0) && (
           <TouchableOpacity onPress={clearAllFilters} className="flex-row items-center">
@@ -384,12 +304,34 @@ const ShoppingListing = () => {
               activeOpacity={0.7}
             >
               <View className="flex-row">
-                <View className="w-24 h-24 rounded-xl overflow-hidden mr-4 relative">
-                  <Image 
-                    source={{ uri: item.images?.[0] }} 
-                    className="w-full h-full"
-                    resizeMode="cover"
-                  />
+                <View className="w-28 h-28 rounded-xl overflow-hidden mr-4 relative">
+                  {item.images && item.images.length > 0 ? (
+                    <Image 
+                      source={{ uri: item.images[0].imageUrl }} 
+                      className="w-full h-full"
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <MaterialCommunityIcons name="store" size={32} color="#9ca3af" />
+                    </View>
+                  )}
+                  {/* Active Status Badge */}
+                  <View className="absolute top-2 left-2 flex-row">
+                    {/* Active Status Indicator */}
+                    <View className={`rounded-full px-2 py-1 flex-row items-center ${item.isActive ? 'bg-green-100' : 'bg-red-100'}`}>
+                      <Ionicons 
+                        name={item.isActive ? 'checkmark' : 'close'} 
+                        size={12} 
+                        olor={item.isActive ? '#16a34a' : '#dc2626'} 
+                      />
+                      <Text className={`text-xs ml-1 ${item.isActive ? 'text-green-800' : 'text-red-800'}`}>
+                        {item.isActive ? 'Available' : 'Unavailable'}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  
                   {item.images && item.images.length > 1 && (
                     <View className="absolute bottom-2 right-2 bg-black/50 rounded-full px-2 py-1">
                       <Text className="text-white text-xs">
@@ -400,69 +342,79 @@ const ShoppingListing = () => {
                 </View>
                 <View className="flex-1">
                   <View className="flex-row justify-between items-start">
-                    <Text className="text-lg font-bold text-gray-800 flex-1 mr-2" numberOfLines={1}>
+                    <Text className="text-lg font-bold text-gray-800 flex-1 mr-2" numberOfLines={5}>
                       {item.name}
                     </Text>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(item.website);
-                      }}
-                      className="p-2 bg-gray-100 rounded-full"
-                    >
-                      <Feather name="external-link" size={16} color="#006D77" />
-                    </TouchableOpacity>
+                    {/* {item.email && (
+                      <TouchableOpacity 
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          Linking.openURL(`mailto:${item.email}`);
+                        }}
+                        className="p-2 bg-gray-100 rounded-full"
+                      >
+                        <Feather name="mail" size={16} color="#006D77" />
+                      </TouchableOpacity>
+                    )} */}
                   </View>
                   
                   <View className="flex-row items-center mt-1">
                     <Ionicons name="location" size={14} color="#666" />
-                    <Text className="text-gray-500 text-sm ml-1">{item.location}</Text>
+                    <Text className="text-gray-500 text-sm ml-1 mr-5">
+                      {item.city}, {item.province}
+                    </Text>
                   </View>
                   
                   <View className="flex-row items-center mt-2">
-                    {renderStars(item.rating)}
+                    {renderStars()}
                   </View>
                   
                   <View className="flex-row justify-between items-center mt-2">
                     <View className="flex-row items-center">
                       <FontAwesome 
-                        name={categoryIcons[item.category]} 
+                        name={categoryIcons[item.category] || "shopping-cart"} 
                         size={14} 
                         color="#006D77" 
                         style={{ marginRight: 6 }}
                       />
-                      <Text className="text-gray-500 text-sm">{item.category}</Text>
+                      <Text className="text-gray-500 text-sm mr-5">{item.category || "Other"}</Text>
                     </View>
-                    {renderPriceRange(item.priceRange)}
+                    {/* {renderPriceRange()} */}
                   </View>
                   
-                  <View className="flex-row items-center mt-2">
-                    <View className={`rounded-full px-3 py-1 ${getAvailabilityColor(item.availability)}`}>
-                      <Text className="text-xs font-medium">{item.availability}</Text>
+                  {/* <View className="flex-row items-center mt-2">
+                    <View className={`rounded-full px-3 py-1 ${getAvailabilityColor(item.isActive)}`}>
+                      <Text className="text-xs font-medium">
+                        {getAvailabilityText(item.isActive)}
+                      </Text>
                     </View>
-                    <Text className="text-gray-500 text-sm ml-2">{item.hours}</Text>
-                  </View>
+                    <Text className="text-gray-500 text-sm ml-2">Hours not specified</Text>
+                  </View> */}
                   
-                  <View className="flex-row mt-3">
-                    <TouchableOpacity 
-                      className="p-2 bg-gray-100 rounded-full mr-2"
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(`tel:${item.phone}`);
-                      }}
-                    >
-                      <Feather name="phone" size={16} color="#006D77" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      className="p-2 bg-gray-100 rounded-full mr-2"
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(`mailto:${item.email}`);
-                      }}
-                    >
-                      <Feather name="mail" size={16} color="#006D77" />
-                    </TouchableOpacity>
-                  </View>
+                  {/* <View className="flex-row mt-3">
+                    {item.phone && (
+                      <TouchableOpacity 
+                        className="p-2 bg-gray-100 rounded-full mr-2"
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          Linking.openURL(`tel:${item.phone}`);
+                        }}
+                      >
+                        <Feather name="phone" size={16} color="#006D77" />
+                      </TouchableOpacity>
+                    )}
+                    {item.email && (
+                      <TouchableOpacity 
+                        className="p-2 bg-gray-100 rounded-full mr-2"
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          Linking.openURL(`mailto:${item.email}`);
+                        }}
+                      >
+                        <Feather name="mail" size={16} color="#006D77" />
+                      </TouchableOpacity>
+                    )}
+                  </View> */}
                 </View>
               </View>
               <TouchableOpacity 
@@ -470,7 +422,7 @@ const ShoppingListing = () => {
                 onPress={() => handleViewDetails(item)}
                 activeOpacity={0.8}
               >
-                <Text className="text-[#006D77] font-semibold">View Details & Products</Text>
+                <Text className="text-[#006D77] font-semibold">View Details</Text>
                 <Ionicons name="arrow-forward" size={18} color="#006D77" />
               </TouchableOpacity>
             </TouchableOpacity>
@@ -519,7 +471,7 @@ const ShoppingListing = () => {
               <View className="mb-6">
                 <Text className="text-lg font-semibold text-gray-800 mb-3">Category</Text>
                 <View className="flex-row flex-wrap">
-                  {categories.map((category) => (
+                  {getCategories().map((category) => (
                     <TouchableOpacity
                       key={category}
                       onPress={() => toggleFilter("category", category)}
@@ -530,7 +482,7 @@ const ShoppingListing = () => {
                       }`}
                     >
                       <FontAwesome 
-                        name={categoryIcons[category]} 
+                        name={categoryIcons[category] || "shopping-cart"} 
                         size={14} 
                         color={activeFilters.category.includes(category) ? "white" : "#4b5563"} 
                         style={{ marginRight: 6 }}
@@ -553,7 +505,7 @@ const ShoppingListing = () => {
               <View className="mb-6">
                 <Text className="text-lg font-semibold text-gray-800 mb-3">Location</Text>
                 <View className="flex-row flex-wrap">
-                  {locations.map((location) => (
+                  {getLocations().map((location) => (
                     <TouchableOpacity
                       key={location}
                       onPress={() => toggleFilter("location", location)}
@@ -578,7 +530,7 @@ const ShoppingListing = () => {
               </View>
               
               {/* Price Range Filter */}
-              <View className="mb-6">
+              {/* <View className="mb-6">
                 <Text className="text-lg font-semibold text-gray-800 mb-3">Price Range</Text>
                 <View className="flex-row flex-wrap">
                   {priceRanges.map((range) => (
@@ -603,10 +555,10 @@ const ShoppingListing = () => {
                     </TouchableOpacity>
                   ))}
                 </View>
-              </View>
+              </View> */}
               
               {/* Availability Filter */}
-              <View className="mb-6">
+              {/* <View className="mb-6">
                 <Text className="text-lg font-semibold text-gray-800 mb-3">Availability</Text>
                 <View className="flex-row flex-wrap">
                   {availabilityOptions.map((option) => (
@@ -631,7 +583,7 @@ const ShoppingListing = () => {
                     </TouchableOpacity>
                   ))}
                 </View>
-              </View>
+              </View> */}
               
               {/* Sort By Filter */}
               <View className="mb-6">
