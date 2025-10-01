@@ -77,7 +77,7 @@ const ActivitiesListing = () => {
       }
     } catch (err) {
       console.error("API Error:", err);
-      setError("Failed to load activities. Please try again.");
+      setError("Failed to connect to server");
     } finally {
       setLoading(false);
     }
@@ -247,22 +247,16 @@ const ActivitiesListing = () => {
   }
 
   if (error) {
-    return (
-      <View className="flex-1 bg-gray-50 justify-center items-center p-4">
-        <MaterialCommunityIcons name="alert-circle" size={48} color="#d1d5db" />
-        <Text className="text-gray-500 text-lg mt-4 text-center font-semibold">
-          {error}
-        </Text>
-        <TouchableOpacity 
-          onPress={fetchActivities}
-          className="mt-6 bg-[#006D77] px-6 py-3 rounded-xl flex-row items-center"
-        >
-          <Ionicons name="reload" size={18} color="white" style={{marginRight: 8}} />
-          <Text className="text-white font-semibold">Try Again</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+      return (
+        <View className="flex-1 bg-gray-50 justify-center items-center p-4">
+          <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#dc2626" />
+          <Text className="text-red-600 text-lg mt-4 text-center font-semibold">{error}</Text>
+          <Text className="text-gray-500 text-sm mt-2 text-center">
+            Please check your connection and try again
+          </Text>
+        </View>
+      );
+    }
 
   return (
     <View className="flex-1 bg-gray-50">

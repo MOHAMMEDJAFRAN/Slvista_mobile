@@ -1,23 +1,77 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 const HotelCard = ({ hotel, onViewDeal }) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+
+  // Use the images array or fallback to single image
+  const images = hotel.images || [hotel.image];
+  
+  const nextImage = () => {
+    setCurrentImageIndex((prevIndex) => 
+      prevIndex === images.length - 1 ? 0 : prevIndex + 1
+    );
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prevIndex) => 
+      prevIndex === 0 ? images.length - 1 : prevIndex - 1
+    );
+  };
+
   return (
     <View className="bg-white rounded-xl shadow-sm mb-4 overflow-hidden">
       <View className="relative">
         <Image 
-          source={{ uri: hotel.image }} 
+          source={{ uri: images[currentImageIndex] }} 
           className="w-full h-48" 
           resizeMode="cover"
         />
+        
+        {/* Image Navigation */}
+        {images.length > 1 && (
+          <>
+            <TouchableOpacity
+              className="absolute left-2 top-1/2 -translate-y-3 p-2 bg-black/30 rounded-full"
+              onPress={prevImage}
+            >
+              {/* <Ionicons name="chevron-back" size={16} color="white" /> */}
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="absolute right-2 top-1/2 -translate-y-3 p-2 bg-black/30 rounded-full"
+              onPress={nextImage}
+            >
+              {/* <Ionicons name="chevron-forward" size={16} color="white" /> */}
+            </TouchableOpacity>
+            <View className="absolute bottom-2 left-0 right-0 flex-row justify-center">
+              {/* {images.map((_, index) => (
+                <View
+                  key={index}
+                  className={`h-1 w-1 mx-1 rounded-full ${
+                    index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                  }`}
+                />
+              ))} */}
+            </View>
+          </>
+        )}
+        
         {hotel.sponsored && (
           <View className="absolute top-2 left-2 bg-amber-500 py-1 px-2 rounded">
             <Text className="text-white text-xs font-medium">Sponsored</Text>
           </View>
         )}
-        <TouchableOpacity className="absolute top-2 right-2 bg-white p-2 rounded-full">
-          <Ionicons name="heart-outline" size={20} color="#006D77" />
+        <TouchableOpacity 
+          className="absolute top-2 right-2 bg-white p-2 rounded-full"
+          onPress={() => setIsLiked(!isLiked)}
+        >
+          <Ionicons 
+            name={isLiked ? "heart" : "heart-outline"} 
+            size={20} 
+            color={isLiked ? "#FF0000" : "#006D77"} 
+          />
         </TouchableOpacity>
       </View>
       

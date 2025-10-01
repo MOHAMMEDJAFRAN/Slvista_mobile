@@ -62,6 +62,13 @@ export default function HotelAndApartment() {
     }
   }, [guestsOpen]);
 
+  // Handle destination input change with space trimming
+  const handleDestinationChange = (text) => {
+    // Remove trailing spaces from the input
+    const trimmedText = text.replace(/\s+$/, '');
+    setDestination(trimmedText);
+  };
+
   const handleTravelerSelect = (option) => {
     setTravelerType(option);
     setTravelerTypeOpen(false);
@@ -157,8 +164,11 @@ export default function HotelAndApartment() {
 
   // Handle search
   const handleSearch = () => {
+    // Trim the destination text before using it
+    const trimmedDestination = destination.trim();
+    
     const searchParams = {
-      destination,
+      destination: trimmedDestination,
       checkInDate,
       checkOutDate,
       guests,
@@ -168,11 +178,15 @@ export default function HotelAndApartment() {
     navigation.navigate('HotelsListing', { searchParams });
   };
 
+  const clearDestination = () => {
+    setDestination("");
+  };
+
   return (
     <View className="m-6 rounded-2xl bg-white p-5 shadow-xl border border-gray-100">
       {/* Traveler Type - Fixed Scroller Dropdown */}
       <View className="mb-5">
-        <Text className="mb-2 text-sm font-medium text-gray-700">Traveler Type</Text>
+        <Text className="mb-2 text-sm font-medium text-gray-700">Traveler Type<Text className="text-red-500">*</Text></Text>
         <TouchableOpacity
           onPress={() => setTravelerTypeOpen(!travelerTypeOpen)}
           className="flex-row items-center justify-between rounded-full border-2 border-cyan-700 px-4 py-3 bg-white shadow-sm"
@@ -227,22 +241,30 @@ export default function HotelAndApartment() {
 
       {/* Destination Input Box */}
       <View className="mb-5">
-        <Text className="mb-2 text-sm font-medium text-gray-700">Destination / Hotel</Text>
-        <View className="flex-row items-center rounded-full border-2 border-[#006D77] bg-white px-4 py-1 shadow-sm">
+        <Text className="mb-2 text-sm font-medium text-gray-700">Destination / Hotel<Text className="text-red-500">*</Text></Text>
+        <View className="flex-row items-center rounded-full border-2 border-[#006D77] bg-white px-4 py-2 shadow-sm">
           <MaterialIcons name="location-on" size={22} color="#006D77" />
           <TextInput
-            className="ml-3 text-base font-semibold text-gray-800 flex-1"
+            className="ml-3 flex-1 text-base font-semibold text-gray-800"
             value={destination}
-            onChangeText={setDestination}
+            onChangeText={handleDestinationChange} // Updated to use the new handler
             placeholder="Enter destination or hotel name"
+            placeholderTextColor="#9ca3af"
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
           />
+          {destination.length > 0 && (
+            <TouchableOpacity onPress={clearDestination} className="p-1">
+              <MaterialIcons name="close" size={18} color="#006D77" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       {/* Check-in / Check-out */}
       <View className="mb-5 flex-row justify-between gap-4">
         <View className="flex-1">
-          <Text className="mb-2 text-sm font-medium text-gray-700">Check in</Text>
+          <Text className="mb-2 text-sm font-medium text-gray-700">Check in<Text className="text-red-500">*</Text></Text>
           <TouchableOpacity
             onPress={() => openCalendar("checkin")}
             className="flex-row items-center rounded-full border-2 border-[#006D77] bg-white px-4 py-3 shadow-sm"
@@ -256,7 +278,7 @@ export default function HotelAndApartment() {
         </View>
 
         <View className="flex-1">
-          <Text className="mb-2 text-sm font-medium text-gray-700">Check out</Text>
+          <Text className="mb-2 text-sm font-medium text-gray-700">Check out<Text className="text-red-500">*</Text></Text>
           <TouchableOpacity
             onPress={() => openCalendar("checkout")}
             className="flex-row items-center rounded-full border-2 border-[#006D77] bg-white px-4 py-3 shadow-sm"

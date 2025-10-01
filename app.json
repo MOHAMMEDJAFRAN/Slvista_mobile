@@ -1,39 +1,44 @@
 {
   "expo": {
-    "name": "my-expo-app",
+    "name": "SL Vista",
     "slug": "my-expo-app",
     "version": "1.0.0",
-
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/logo (3).png",
       "bundler": "metro"
     },
-
     "experiments": {
       "tsconfigPaths": true
     },
-
-    "plugins": [],
-
+    "plugins": [
+      "expo-build-properties"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-
     "userInterfaceStyle": "light",
-
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/logo (3).png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.jafran2001.myexpoapp"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c510fe65-699f-4b39-87a3-70aa7ca64ebc"
+      },
+      "API_BASE_URL": "https://api.slvista.softxpertz.lk"
     }
   }
 }

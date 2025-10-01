@@ -211,7 +211,7 @@ const FoodBeverageListing = () => {
     return (
       <View className="flex-1 bg-gray-50 justify-center items-center">
         <ActivityIndicator size="large" color="#006D77" />
-        <Text className="mt-4 text-gray-600">Loading food & beverage options...</Text>
+        <Text className="mt-4 text-gray-600">Loading food & beverage...</Text>
       </View>
     );
   }

@@ -16,8 +16,11 @@ const ServiceDetails = () => {
   const [userHasReviewed, setUserHasReviewed] = useState(false);
   const [reviewsToShow, setReviewsToShow] = useState(2);
 
+  // Default placeholder image
+  const placeholderImage = "https://via.placeholder.com/400x300?text=No+Image+Available";
+
   // Sample images if only one image is provided
-  const images = serviceItem.images || [serviceItem.image];
+  const images = serviceItem.images || [serviceItem.image || placeholderImage];
   
   // Sample reviews data with user images
   const reviews = serviceItem.reviews || [
@@ -36,22 +39,6 @@ const ServiceDetails = () => {
       comment: "Very knowledgeable and friendly service. Would definitely recommend to others.",
       date: "2023-10-12",
       userImage: "https://randomuser.me/api/portraits/women/42.jpg"
-    },
-    {
-      id: 3,
-      user: "David Wilson",
-      rating: 5,
-      comment: "Outstanding service quality. Prompt response and excellent results.",
-      date: "2023-10-10",
-      userImage: "https://randomuser.me/api/portraits/men/28.jpg"
-    },
-    {
-      id: 4,
-      user: "Sarah Johnson",
-      rating: 4,
-      comment: "Reliable and professional. Will use their services again.",
-      date: "2023-10-08",
-      userImage: "https://randomuser.me/api/portraits/women/12.jpg"
     }
   ];
 
@@ -74,6 +61,82 @@ const ServiceDetails = () => {
     "Translation": "translate"
   };
 
+  // Improved image carousel with manual navigation
+  const ImageCarousel = ({ images }) => {
+    if (!images || images.length === 0) {
+      return (
+        <View className="h-72 w-full bg-gray-200 justify-center items-center">
+          <Ionicons name="image" size={48} color="#9ca3af" />
+          <Text className="text-gray-500 mt-2">No images available</Text>
+        </View>
+      );
+    }
+
+    const goToNext = () => {
+      setActiveIndex((prevIndex) => 
+        prevIndex === images.length - 1 ? 0 : prevIndex + 1
+      );
+    };
+
+    const goToPrev = () => {
+      setActiveIndex((prevIndex) => 
+        prevIndex === 0 ? images.length - 1 : prevIndex - 1
+      );
+    };
+
+    return (
+      <View className="h-72 w-full relative">
+        <Image 
+          source={{ uri: images[activeIndex] || placeholderImage }} 
+          className="w-full h-full"
+          resizeMode="cover"
+          onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
+        />
+        
+        {/* Navigation arrows */}
+        {images.length > 1 && (
+          <>
+            <TouchableOpacity 
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-2"
+              onPress={goToPrev}
+            >
+              <Ionicons name="chevron-back" size={24} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-2"
+              onPress={goToNext}
+            >
+              <Ionicons name="chevron-forward" size={24} color="white" />
+            </TouchableOpacity>
+          </>
+        )}
+        
+        {/* Image counter */}
+        {images.length > 1 && (
+          <View className="absolute top-4 right-4 bg-black/50 rounded-full px-3 py-1">
+            <Text className="text-white text-sm">
+              {activeIndex + 1}/{images.length}
+            </Text>
+          </View>
+        )}
+        
+        {/* Pagination indicators */}
+        {images.length > 1 && (
+          <View className="absolute bottom-4 flex-row justify-center w-full">
+            {images.map((_, index) => (
+              <View
+                key={index}
+                className={`h-2 w-2 rounded-full mx-1 ${
+                  index === activeIndex ? "bg-white" : "bg-gray-300"
+                }`}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   // Toggle section expansion
   const toggleSection = (section) => {
     if (expandedSection === section) {
@@ -83,6 +146,7 @@ const ServiceDetails = () => {
     }
   };
 
+  // Fixed renderStars function - removed the arrow function syntax error
   const renderStars = (rating, size = 16, interactive = false) => {
     const stars = [];
     
@@ -118,17 +182,6 @@ const ServiceDetails = () => {
     if (status === "Closed") return "bg-red-100 text-red-800";
     return "bg-gray-100 text-gray-800";
   };
-
-  const renderImageItem = ({ item }) => (
-    <View className="h-72 w-full">
-      <Image 
-        source={{ uri: item }} 
-        className="w-full h-full"
-        resizeMode="cover"
-        onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
-      />
-    </View>
-  );
 
   const renderReviewItem = ({ item }) => (
     <View className="bg-gray-50 p-4 rounded-xl mb-4">
@@ -177,7 +230,6 @@ const ServiceDetails = () => {
 
   const submitReview = () => {
     if (userRating > 0 && userReview.trim() !== "") {
-      // In a real app, you would send this to your backend
       alert(`Thank you for your ${userRating} star review!`);
       setUserReview("");
       setUserRating(0);
@@ -188,7 +240,6 @@ const ServiceDetails = () => {
   };
 
   const loadMoreReviews = () => {
-    // Show 3 more reviews each time the button is clicked
     setReviewsToShow(prev => Math.min(prev + 3, reviews.length));
   };
 
@@ -207,42 +258,8 @@ const ServiceDetails = () => {
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Image Carousel */}
-        <View className="relative">
-          <FlatList
-            data={images}
-            renderItem={renderImageItem}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item, index) => index.toString()}
-            onMomentumScrollEnd={(event) => {
-              const index = Math.floor(event.nativeEvent.contentOffset.x / width);
-              setActiveIndex(index);
-            }}
-          />
-          {/* Image counter */}
-          {images.length > 1 && (
-            <View className="absolute top-4 right-4 bg-black/50 rounded-full px-3 py-1">
-              <Text className="text-white text-sm">
-                {activeIndex + 1}/{images.length}
-              </Text>
-            </View>
-          )}
-          {/* Pagination indicators */}
-          {images.length > 1 && (
-            <View className="absolute bottom-4 flex-row justify-center w-full">
-              {images.map((_, index) => (
-                <View
-                  key={index}
-                  className={`h-2 w-2 rounded-full mx-1 ${
-                    index === activeIndex ? "bg-white" : "bg-gray-300"
-                  }`}
-                />
-              ))}
-            </View>
-          )}
-        </View>
-
+        <ImageCarousel images={images} />
+        
         {/* Details */}
         <View className="p-5 bg-white rounded-t-3xl -mt-6">
           <View className="flex-row justify-between items-start">

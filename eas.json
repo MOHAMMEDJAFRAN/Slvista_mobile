@@ -1,0 +1,40 @@
+{
+  "cli": {
+    "version": ">= 16.19.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "node": "20.0.0",
+      "env": {
+        "NPM_CONFIG_LEGACY_PEER_DEPENDENCIES": "true"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "node": "20.0.0",
+      "env": {
+        "NPM_CONFIG_LEGACY_PEER_DEPENDENCIES": "true",
+        "API_BASE_URL": "https://api.slvista.softxpertz.lk"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "node": "20.0.0",
+      "env": {
+        "NPM_CONFIG_LEGACY_PEER_DEPENDENCIES": "true"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

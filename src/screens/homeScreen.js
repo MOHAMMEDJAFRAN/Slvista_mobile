@@ -3,7 +3,6 @@ import { useState } from 'react';
 
 import Header from '../../components/homeComponents/Header';
 import ListingButtons from '../../components/homeComponents/ListingButton';
-import TwoButtons from '../../components/homeComponents/TwoButtons';
 import HotelAndApartment from '../subscreens/HomeScreen/HotelAndApartment';
 import HomeStays from '../subscreens/HomeScreen/HomeStayForm';
 import Activities from '../subscreens/HomeScreen/Activities';

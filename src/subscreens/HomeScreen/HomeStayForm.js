@@ -2,10 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, Modal, TextInput, ScrollView, Animated, Dimensions } from "react-native";
 import { MaterialIcons, FontAwesome, Ionicons, Entypo } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
+import { useNavigation } from "@react-navigation/native";
 
 const { height } = Dimensions.get('window');
 
-export default function HotelAndApartment() {
+export default function HotelStay() {
+  const navigation = useNavigation();
   const [travelerTypeOpen, setTravelerTypeOpen] = useState(false);
   const [travelerType, setTravelerType] = useState("Traveler Type");
   const travelerOptions = ["Local", "International", "Business", "Leisure", "Family", "Solo"];
@@ -15,10 +17,10 @@ export default function HotelAndApartment() {
   const [checkOutDate, setCheckOutDate] = useState("");
   const [showCalendar, setShowCalendar] = useState(null);
   
-  const [destination, setDestination] = useState("Colombo, Sri Lanka");
+  const [destination, setDestination] = useState("");
   const [guestsOpen, setGuestsOpen] = useState(false);
   const [guests, setGuests] = useState({
-    adults: 2,
+    adults: 1,
     children: 0,
     rooms: 1,
     infants: 0
@@ -30,7 +32,6 @@ export default function HotelAndApartment() {
 
   useEffect(() => {
     if (showCalendar) {
-      // Reset position before animating
       calendarTranslateY.setValue(height);
       setTimeout(() => {
         Animated.spring(calendarTranslateY, {
@@ -46,7 +47,6 @@ export default function HotelAndApartment() {
 
   useEffect(() => {
     if (guestsOpen) {
-      // Reset position before animating
       guestsTranslateY.setValue(height);
       setTimeout(() => {
         Animated.spring(guestsTranslateY, {
@@ -59,6 +59,13 @@ export default function HotelAndApartment() {
       }, 10);
     }
   }, [guestsOpen]);
+
+  // Handle destination input change with space trimming
+  const handleDestinationChange = (text) => {
+    // Remove trailing spaces from the input
+    const trimmedText = text.replace(/\s+$/, '');
+    setDestination(trimmedText);
+  };
 
   const handleTravelerSelect = (option) => {
     setTravelerType(option);
@@ -144,11 +151,49 @@ export default function HotelAndApartment() {
     return today.toISOString().split('T')[0];
   };
 
+  // Format date for display
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return "Select date";
+    
+    const date = new Date(dateString);
+    const options = { weekday: 'short', month: 'short', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+  };
+
+  // Handle search navigation
+  const handleSearch = () => {
+    // Trim the destination text before using it
+    const trimmedDestination = destination.trim();
+    
+    if (!trimmedDestination) {
+      alert("Please enter a destination");
+      return;
+    }
+    if (!checkInDate || !checkOutDate) {
+      alert("Please select check-in and check-out dates");
+      return;
+    }
+
+    navigation.navigate('HomeListing', {
+      searchParams: {
+        destination: trimmedDestination,
+        checkInDate,
+        checkOutDate,
+        guests,
+        travelerType
+      }
+    });
+  };
+
+  const clearDestination = () => {
+    setDestination("");
+  };
+
   return (
     <View className="m-6 rounded-2xl bg-white p-5 shadow-xl border border-gray-100">
       {/* Traveler Type - Fixed Scroller Dropdown */}
       <View className="mb-5">
-        <Text className="mb-2 text-sm font-medium text-gray-700">Traveler Type</Text>
+        <Text className="mb-2 text-sm font-medium text-gray-700">Traveler Type<Text className="text-red-500">*</Text></Text>
         <TouchableOpacity
           onPress={() => setTravelerTypeOpen(!travelerTypeOpen)}
           className="flex-row items-center justify-between rounded-full border-2 border-[#006D77] px-4 py-3 bg-white shadow-sm"
@@ -203,22 +248,30 @@ export default function HotelAndApartment() {
 
       {/* Destination Input Box */}
       <View className="mb-5">
-        <Text className="mb-2 text-sm font-medium text-gray-700">Destination / Hotel</Text>
-        <View className="flex-row items-center rounded-full border-2 border-[#006D77] bg-white px-4 py-1 shadow-sm">
+        <Text className="mb-2 text-sm font-medium text-gray-700">Destination / Home Stay<Text className="text-red-500">*</Text></Text>
+        <View className="flex-row items-center rounded-full border-2 border-[#006D77] bg-white px-4 py-2 shadow-sm">
           <MaterialIcons name="location-on" size={22} color="#006D77" />
           <TextInput
-            className="ml-3 text-base font-semibold text-gray-800 flex-1"
+            className="ml-3 flex-1 text-base font-semibold text-gray-800"
             value={destination}
-            onChangeText={setDestination}
-            placeholder="Enter destination or hotel name"
+            onChangeText={handleDestinationChange} // Updated to use the new handler
+            placeholder="Enter destination or home name"
+            placeholderTextColor="#9ca3af"
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
           />
+          {destination.length > 0 && (
+            <TouchableOpacity onPress={clearDestination} className="p-1">
+              <MaterialIcons name="close" size={18} color="#006D77" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       {/* Check-in / Check-out */}
       <View className="mb-5 flex-row justify-between gap-4">
         <View className="flex-1">
-          <Text className="mb-2 text-sm font-medium text-gray-700">Check in</Text>
+          <Text className="mb-2 text-sm font-medium text-gray-700">Check in<Text className="text-red-500">*</Text></Text>
           <TouchableOpacity
             onPress={() => openCalendar("checkin")}
             className="flex-row items-center rounded-full border-2 border-[#006D77] bg-white px-4 py-3 shadow-sm"
@@ -226,13 +279,13 @@ export default function HotelAndApartment() {
           >
             <FontAwesome name="calendar" size={18} color="#006D77" />
             <Text className="ml-3 text-base font-semibold text-gray-800">
-              {checkInDate || "Select date"}
+              {formatDateForDisplay(checkInDate)}
             </Text>
           </TouchableOpacity>
         </View>
 
         <View className="flex-1">
-          <Text className="mb-2 text-sm font-medium text-gray-700">Check out</Text>
+          <Text className="mb-2 text-sm font-medium text-gray-700">Check out <Text className="text-red-500">*</Text></Text>
           <TouchableOpacity
             onPress={() => openCalendar("checkout")}
             className="flex-row items-center rounded-full border-2 border-[#006D77] bg-white px-4 py-3 shadow-sm"
@@ -240,7 +293,7 @@ export default function HotelAndApartment() {
           >
             <FontAwesome name="calendar" size={18} color="#006D77" />
             <Text className="ml-3 text-base font-semibold text-gray-800">
-              {checkOutDate || "Select date"}
+              {formatDateForDisplay(checkOutDate)}
             </Text>
           </TouchableOpacity>
         </View>
@@ -275,6 +328,7 @@ export default function HotelAndApartment() {
       <TouchableOpacity
         className="mt-2 items-center rounded-full bg-[#006D77] py-4 shadow-md active:opacity-80"
         activeOpacity={0.7}
+        onPress={handleSearch}
       >
         <Text className="text-lg font-semibold text-white">Search Homes</Text>
       </TouchableOpacity>
@@ -301,7 +355,7 @@ export default function HotelAndApartment() {
             </Text>
             <Calendar
               onDayPress={handleDaySelect}
-              minDate={getTodayDate()} // Disable previous dates
+              minDate={getTodayDate()}
               theme={{
                 selectedDayBackgroundColor: "#006D77",
                 todayTextColor: "#006D77",
@@ -310,17 +364,11 @@ export default function HotelAndApartment() {
                 textDayFontWeight: '500',
                 textMonthFontWeight: 'bold',
                 textDayHeaderFontWeight: '600',
-                'stylesheet.calendar.main': {
-                  dayContainer: {
-                    // Disable styling for past dates
-                  }
-                }
               }}
               markedDates={{
                 [checkInDate]: { selected: true, selectedColor: "#006D77" },
                 [checkOutDate]: { selected: true, selectedColor: "#006D77" },
               }}
-              // Disable month scroll for past dates
               enableSwipeMonths={true}
             />
             <TouchableOpacity

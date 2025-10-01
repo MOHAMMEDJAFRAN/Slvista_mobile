@@ -37,7 +37,7 @@ const ArtistDetails = () => {
     "Digital Art": "laptop",
     "Textile Art": "cut",
     "Performance": "theater-masks",
-    "sdfasaef": "palette" // Default icon for your API category
+    "sdfasaef": "paint-brush" // Default icon for your API category
   };
 
   // Fetch artist details from API

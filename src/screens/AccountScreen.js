@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Ionicons, Feather, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
@@ -77,7 +78,7 @@ const Account = () => {
         { 
           label: "Privacy and data management", 
           icon: <MaterialIcons name="privacy-tip" size={20} color="#00718F" />, 
-          action: () => navigation.navigate('PrivacyPolicy') 
+          action: () => navigation.navigate('PrivacyAndData') 
         },
         { 
           label: "Customer support", 
@@ -87,7 +88,7 @@ const Account = () => {
         { 
           label: "Content guidelines", 
           icon: <MaterialIcons name="description" size={20} color="#00718F" />, 
-          action: () => navigation.navigate('ContentGuidelines') 
+          action: () => navigation.navigate('Guidelines') 
         },
       ]
     },

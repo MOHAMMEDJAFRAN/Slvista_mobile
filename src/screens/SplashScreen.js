@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { View, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import logo from '../../assets/logo (3).png';
+
 
 const SplashScreen = () => {
   const navigation = useNavigation();
@@ -17,7 +19,7 @@ const SplashScreen = () => {
   return (
     <View className="flex-1 bg-[#006D77] items-center justify-center ">
       <Image
-        source={require('../../assets/logo.png')}
+        source={logo}
         className="w-40 h-40 rounded-full"
         resizeMode="contain"
       />

@@ -1,89 +1,61 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Image, Modal, TextInput, Alert, ActivityIndicator } from "react-native";
-import { MaterialIcons, FontAwesome, Ionicons, Entypo } from "@expo/vector-icons";
-import { useRoute, useNavigation } from "@react-navigation/native";
-import { Calendar } from "react-native-calendars";
-import HotelCard from "../../../components/HotelCard";
-import FilterComponent from "../../../components/HotelFilter";
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Modal, ActivityIndicator, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons, MaterialIcons, FontAwesome, Entypo } from '@expo/vector-icons';
+import { useRoute, useNavigation } from '@react-navigation/native';
+import { Calendar } from 'react-native-calendars';
+import RoomCard from '../../../components/HomeRoomCard';
+import FilterComponent from '../../../components/RoomFilter';
 
-export default function HotelsListing() {
+export default function HomeListing({ navigation }) {
   const route = useRoute();
-  const navigation = useNavigation();
   const { searchParams } = route.params || {};
   
-  // Get today's date and tomorrow's date for default values
-  const today = new Date();
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  const formatDateToYYYYMMDD = (date) => {
-    return date.toISOString().split('T')[0];
-  };
-  
-  // Sample hotel data with availability
-  const [allHotels, setAllHotels] = useState([]);
+  const [allRooms, setAllRooms] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const [filteredHotels, setFilteredHotels] = useState([]);
+  const [filteredRooms, setFilteredRooms] = useState([]);
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [mapModalVisible, setMapModalVisible] = useState(false);
-  const [searchModalVisible, setSearchModalVisible] = useState(false);
   const [selectedSort, setSelectedSort] = useState("Recommended");
+  const [searchModalVisible, setSearchModalVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(null);
   const [guestsModalVisible, setGuestsModalVisible] = useState(false);
-  
-  // Search parameters with default dates
+
+  // Search parameters
   const [destination, setDestination] = useState(searchParams?.destination || "");
-  const [checkInDate, setCheckInDate] = useState(
-    searchParams?.checkInDate || formatDateToYYYYMMDD(today)
-  );
-  const [checkOutDate, setCheckOutDate] = useState(
-    searchParams?.checkOutDate || formatDateToYYYYMMDD(tomorrow)
-  );
+  const [checkInDate, setCheckInDate] = useState(searchParams?.checkInDate || "");
+  const [checkOutDate, setCheckOutDate] = useState(searchParams?.checkOutDate || "");
   const [guests, setGuests] = useState(searchParams?.guests || {
     adults: 1,
     children: 0,
     rooms: 1,
     infants: 0
   });
-  
+
   // Filter states
   const [filters, setFilters] = useState({
-    priceRange: [50, 1000],
-    starRating: [],
-    facilities: [],
-    accessibility: [],
-    sustainability: [],
-    paymentOptions: []
+    priceRange: [50, 500],
+    roomType: [],
+    amenities: [],
+    bedType: [],
+    viewType: [],
+    accessibility: []
   });
 
   const sortOptions = [
     "Recommended",
     "Price: Low to High",
     "Price: High to Low",
-    "Star Rating",
-    "Distance"
+    "Room Size",
+    "Guest Rating"
   ];
 
-  const facilitiesOptions = [
-    "Free WiFi", "Swimming Pool", "Air Conditioning", "Free Breakfast", 
-    "Free Parking", "Fitness Center", "Spa", "Restaurant", "Bar"
-  ];
-  
-  const accessibilityOptions = [
-    "Wheelchair Access", "Elevator", "Accessible Bathroom", 
-    "Braille Signage", "Hearing Accessibility"
-  ];
-  
-  const sustainabilityOptions = [
-    "Green Key Certified", "Energy Efficient", "Water Conservation", 
-    "Waste Reduction", "Local Sourcing"
-  ];
-  
-  const paymentOptions = [
-    "Credit Card", "Debit Card", "PayPal", "Cash", "Cryptocurrency"
-  ];
+  const roomTypeOptions = ["Standard", "Deluxe", "Suite", "Family", "Executive"];
+  const bedTypeOptions = ["Single", "Double", "Queen", "King", "Twin"];
+  const viewTypeOptions = ["City View", "Ocean View", "Garden View", "Mountain View", "Pool View"];
+  const amenitiesOptions = ["Free WiFi", "TV", "Air Conditioning", "Mini Bar", "Coffee Maker", "Safe", "Balcony"];
+  const accessibilityOptions = ["Wheelchair Access", "Accessible Bathroom", "Elevator Access"];
 
   // Check if dates are valid and check-out is after check-in
   const validateDates = (checkIn, checkOut) => {
@@ -93,21 +65,21 @@ export default function HotelsListing() {
     const checkOutDate = new Date(checkOut);
     
     if (checkOutDate <= checkInDate) {
-      Alert.alert("Invalid Dates", "Check-out date must be after check-in date");
+      alert("Check-out date must be after check-in date");
       return false;
     }
     
     return true;
   };
 
-  // Check if hotel is available for selected dates
-  const isHotelAvailable = (hotel, checkIn, checkOut) => {
+  // Check if room is available for selected dates
+  const isRoomAvailable = (room, checkIn, checkOut) => {
     if (!checkIn || !checkOut) return true;
     
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
     
-    return hotel.availability.some(period => {
+    return room.availability.some(period => {
       const availableFrom = new Date(period.from);
       const availableTo = new Date(period.to);
       
@@ -115,73 +87,68 @@ export default function HotelsListing() {
     });
   };
 
-  // Filter hotels based on search parameters
+  // Filter rooms based on search and filter criteria
   useEffect(() => {
     if (loading) return;
     
-    let results = allHotels;
+    let results = allRooms;
     
-    // Filter by destination - fixed to handle spaces properly
-    if (destination && destination.trim() !== "") {
-      const searchTerm = destination.toLowerCase().trim();
-      results = results.filter(hotel => 
-        hotel.location.toLowerCase().includes(searchTerm) ||
-        hotel.name.toLowerCase().includes(searchTerm)
+    // Filter by destination if provided
+    if (destination) {
+      results = results.filter(room => 
+        room.location?.toLowerCase().includes(destination.toLowerCase()) ||
+        room.title?.toLowerCase().includes(destination.toLowerCase())
       );
     }
     
     // Filter by availability if dates are selected
     if (checkInDate && checkOutDate) {
-      results = results.filter(hotel => 
-        isHotelAvailable(hotel, checkInDate, checkOutDate)
-      );
-    }
-    
-    // Filter by star rating if selected
-    if (filters.starRating.length > 0) {
-      results = results.filter(hotel => 
-        filters.starRating.includes(hotel.stars)
+      results = results.filter(room => 
+        isRoomAvailable(room, checkInDate, checkOutDate)
       );
     }
     
     // Filter by price range
-    results = results.filter(hotel => 
-      hotel.price >= filters.priceRange[0] && 
-      hotel.price <= filters.priceRange[1]
+    results = results.filter(room => 
+      room.price >= filters.priceRange[0] && 
+      room.price <= filters.priceRange[1]
     );
     
-    // Filter by facilities if selected
-    if (filters.facilities.length > 0) {
-      results = results.filter(hotel => 
-        filters.facilities.some(facility => 
-          hotel.amenities.map(a => a.toLowerCase()).includes(facility.toLowerCase())
+    // Filter by room type if selected
+    if (filters.roomType.length > 0) {
+      results = results.filter(room => 
+        filters.roomType.includes(room.type)
+      );
+    }
+    
+    // Filter by bed type if selected
+    if (filters.bedType.length > 0) {
+      results = results.filter(room => 
+        filters.bedType.includes(room.bedType)
+      );
+    }
+    
+    // Filter by view type if selected
+    if (filters.viewType.length > 0) {
+      results = results.filter(room => 
+        filters.viewType.includes(room.view)
+      );
+    }
+    
+    // Filter by amenities if selected
+    if (filters.amenities.length > 0) {
+      results = results.filter(room => 
+        filters.amenities.some(amenity => 
+          room.amenities.map(a => a.toLowerCase()).includes(amenity.toLowerCase())
         )
       );
     }
     
     // Filter by accessibility if selected
     if (filters.accessibility.length > 0) {
-      results = results.filter(hotel => 
+      results = results.filter(room => 
         filters.accessibility.some(accessibility => 
-          hotel.accessibility.map(a => a.toLowerCase()).includes(accessibility.toLowerCase())
-        )
-      );
-    }
-    
-    // Filter by sustainability if selected
-    if (filters.sustainability.length > 0) {
-      results = results.filter(hotel => 
-        filters.sustainability.some(sustainability => 
-          hotel.sustainability.map(s => s.toLowerCase()).includes(sustainability.toLowerCase())
-        )
-      );
-    }
-    
-    // Filter by payment options if selected
-    if (filters.paymentOptions.length > 0) {
-      results = results.filter(hotel => 
-        filters.paymentOptions.some(payment => 
-          hotel.paymentOptions.map(p => p.toLowerCase()).includes(payment.toLowerCase())
+          room.accessibility.map(a => a.toLowerCase()).includes(accessibility.toLowerCase())
         )
       );
     }
@@ -194,22 +161,23 @@ export default function HotelsListing() {
       case "Price: High to Low":
         results.sort((a, b) => b.price - a.price);
         break;
-      case "Star Rating":
-        results.sort((a, b) => b.stars - a.stars);
+      case "Room Size":
+        results.sort((a, b) => b.size - a.size);
         break;
-      case "Distance":
-        results.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+      case "Guest Rating":
+        results.sort((a, b) => b.rating - a.rating);
         break;
       default:
+        // Recommended (by rating and popularity)
         results.sort((a, b) => {
-          if (a.sponsored && !b.sponsored) return -1;
-          if (!a.sponsored && b.sponsored) return 1;
+          if (a.isPopular && !b.isPopular) return -1;
+          if (!a.isPopular && b.isPopular) return 1;
           return b.rating - a.rating;
         });
     }
     
-    setFilteredHotels(results);
-  }, [allHotels, destination, checkInDate, checkOutDate, filters, selectedSort, loading]);
+    setFilteredRooms(results);
+  }, [allRooms, destination, checkInDate, checkOutDate, filters, selectedSort, loading]);
 
   const toggleFilter = (category, value) => {
     setFilters(prev => {
@@ -228,7 +196,6 @@ export default function HotelsListing() {
     });
   };
 
-  // Update price range
   const updatePriceRange = (values) => {
     setFilters(prev => ({
       ...prev,
@@ -236,7 +203,18 @@ export default function HotelsListing() {
     }));
   };
 
-  // Handle date selection from calendar
+  const resetAllFilters = () => {
+    setFilters({
+      priceRange: [50, 500],
+      roomType: [],
+      amenities: [],
+      bedType: [],
+      viewType: [],
+      accessibility: []
+    });
+  };
+
+  // Handle date selection
   const handleDateSelect = (day) => {
     const formattedDate = day.dateString;
     
@@ -254,7 +232,7 @@ export default function HotelsListing() {
     setShowDatePicker(null);
   };
 
-  // Close date picker function
+  // Close date picker
   const closeDatePicker = () => {
     setShowDatePicker(null);
   };
@@ -267,54 +245,22 @@ export default function HotelsListing() {
     }));
   };
 
-  // Format guests text without zero values
+  // Format date for display
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return "Select date";
+    const date = new Date(dateString);
+    const options = { weekday: 'short', month: 'short', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+  };
+
+  // Format guests text
   const getGuestsText = () => {
     const parts = [];
     if (guests.adults > 0) parts.push(`${guests.adults} Adult${guests.adults !== 1 ? 's' : ''}`);
     if (guests.children > 0) parts.push(`${guests.children} Child${guests.children !== 1 ? 'ren' : ''}`);
     if (guests.rooms > 0) parts.push(`${guests.rooms} Room${guests.rooms !== 1 ? 's' : ''}`);
     if (guests.infants > 0) parts.push(`${guests.infants} Infant${guests.infants !== 1 ? 's' : ''}`);
-    
     return parts.length > 0 ? parts.join(', ') : 'Select guests';
-  };
-
-  // Format date for display
-  const formatDateForDisplay = (dateString) => {
-    if (!dateString) return "Select date";
-    
-    const date = new Date(dateString);
-    const options = { weekday: 'short', month: 'short', day: 'numeric' };
-    return date.toLocaleDateString('en-US', options);
-  };
-
-  // Handle View Deal button press
-  const handleViewDeal = (hotel) => {
-    navigation.navigate('HotelView1WithSafeArea', { 
-      hotel: { ...hotel },
-      checkInDate,
-      checkOutDate,
-      guests
-    });
-  };
-  
-  // Apply search filters
-  const applySearch = () => {
-    if (checkInDate && checkOutDate && !validateDates(checkInDate, checkOutDate)) {
-      return;
-    }
-    setSearchModalVisible(false);
-  };
-
-  // Reset all filters
-  const resetAllFilters = () => {
-    setFilters({
-      priceRange: [50, 1000],
-      starRating: [],
-      facilities: [],
-      accessibility: [],
-      sustainability: [],
-      paymentOptions: []
-    });
   };
 
   // Get today's date in YYYY-MM-DD format
@@ -323,121 +269,154 @@ export default function HotelsListing() {
     return today.toISOString().split('T')[0];
   };
 
-  // Simulate loading data
+  // Apply search filters
+  const applySearch = () => {
+    if (checkInDate && checkOutDate && !validateDates(checkInDate, checkOutDate)) {
+      return;
+    }
+    setSearchModalVisible(false);
+  };
+
+  // Simulate loading rooms data with availability and multiple images
   useEffect(() => {
-    const loadHotels = async () => {
+    const loadRooms = async () => {
       setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const hotelsData = [
+      const today = new Date();
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      
+      const twoWeeks = new Date();
+      twoWeeks.setDate(twoWeeks.getDate() + 14);
+      
+      const formatDate = (date) => date.toISOString().split('T')[0];
+      
+      const roomsData = [
         {
           id: 1,
-          name: "The Capital Hotel",
-          rating: 4.5,
-          stars: 4,
-          amenities: ["Free WiFi", "Swimming pool", "Air Conditioning", "Free Breakfast", "Free Parking"],
-          price: 120,
-          currency: "$",
-          sponsored: true,
-          location: "Colombo, Sri Lanka",
+          title: "Deluxe Ocean View Room",
+          type: "Deluxe",
+          price: 180,
+          size: 35,
+          bedType: "King",
+          view: "Ocean View",
+          maxGuests: 2,
+          rating: 4.7,
+          reviews: 234,
+          amenities: ["Free WiFi", "TV", "Air Conditioning", "Mini Bar", "Coffee Maker", "Balcony"],
+          accessibility: ["Wheelchair Access", "Elevator Access"],
           images: [
-            "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+            "https://images.unsplash.com/photo-1564501049412-61c2a3083791",
+            "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b",
+            "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85"
           ],
-          distance: "2.5 km from center",
-          reviews: 1247,
+          location: "Colombo Beach Resort",
+          isPopular: true,
+          description: "Spacious room with stunning ocean views and premium amenities",
           availability: [
-            { from: "2025-09-19", to: "2025-09-20" }
-          ],
-          accessibility: ["Wheelchair Access", "Elevator"],
-          sustainability: ["Energy Efficient", "Water Conservation"],
-          paymentOptions: ["Credit Card", "Debit Card", "Cash"]
+            { from: "2025-09-19", to: "2025-09-20" } 
+          ]
         },
         {
           id: 2,
-          name: "Oceanview Resort",
-          rating: 4.8,
-          stars: 5,
-          amenities: ["Beach Access", "Spa", "Restaurant", "Pool Bar", "Fitness Center"],
-          price: 220,
-          currency: "$",
-          sponsored: false,
-          location: "Galle, Sri Lanka",
+          title: "Executive Suite",
+          type: "Suite",
+          price: 320,
+          size: 60,
+          bedType: "King",
+          view: "City View",
+          maxGuests: 3,
+          rating: 4.9,
+          reviews: 156,
+          amenities: ["Free WiFi", "TV", "Air Conditioning", "Mini Bar", "Coffee Maker", "Safe", "Separate Living Area"],
+          accessibility: ["Elevator Access"],
           images: [
-            "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1540518614846-7eded433c457?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1564501049412-61c2a3083791?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+            "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b",
+            "https://images.unsplash.com/photo-1540518614846-7eded433c457",
+            "https://images.unsplash.com/photo-1564501049412-61c2a3083791"
           ],
-          distance: "0.5 km from beach",
-          reviews: 892,
+          location: "Colombo City Hotel",
+          isPopular: false,
+          description: "Luxurious suite with separate living area and premium services",
           availability: [
-            { from: "2025-09-19", to: "2025-09-30" }
-          ],
-          accessibility: ["Wheelchair Access", "Elevator", "Accessible Bathroom"],
-          sustainability: ["Green Key Certified", "Energy Efficient", "Local Sourcing"],
-          paymentOptions: ["Credit Card", "PayPal", "Cash"]
+            { from: "2025-09-15", to: "2025-09-16" } 
+          ]
         },
         {
           id: 3,
-          name: "City Center Hotel",
+          title: "Standard City Room",
+          type: "Standard",
+          price: 120,
+          size: 25,
+          bedType: "Queen",
+          view: "City View",
+          maxGuests: 2,
           rating: 4.2,
-          stars: 3,
-          amenities: ["Business Center", "Meeting Rooms", "Restaurant", "24-hour Front Desk"],
-          price: 85,
-          currency: "$",
-          sponsored: false,
-          location: "Colombo, Sri Lanka",
+          reviews: 189,
+          amenities: ["Free WiFi", "TV", "Air Conditioning"],
+          accessibility: [],
           images: [
-            "https://images.unsplash.com/photo-1590490360182-c33d57733427?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+            "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+            "https://images.unsplash.com/photo-1564501049412-61c2a3083791"
           ],
-          distance: "City center",
-          reviews: 567,
+          location: "Galle Guest House",
+          isPopular: false,
+          description: "Comfortable and affordable room with all essential amenities",
           availability: [
-            { from: "2025-09-20", to: "2025-09-31" }
-          ],
-          accessibility: ["Elevator"],
-          sustainability: ["Energy Efficient"],
-          paymentOptions: ["Credit Card", "Debit Card", "Cash"]
+            { from: "2025-09-17", to: "2025-09-20" } 
+          ]
         },
         {
           id: 4,
-          name: "Mountain Retreat",
-          rating: 4.6,
-          stars: 4,
-          amenities: ["Mountain View", "Hiking Trails", "Fireplace", "Restaurant", "Free Parking"],
-          price: 150,
-          currency: "$",
-          sponsored: true,
-          location: "Kandy, Sri Lanka",
+          title: "Family Room",
+          type: "Family",
+          price: 250,
+          size: 45,
+          bedType: "Twin",
+          view: "Garden View",
+          maxGuests: 4,
+          rating: 4.5,
+          reviews: 127,
+          amenities: ["Free WiFi", "TV", "Air Conditioning", "Mini Bar", "Coffee Maker", "Safe"],
+          accessibility: ["Wheelchair Access", "Accessible Bathroom"],
           images: [
-            "https://images.unsplash.com/photo-1586375300773-8384e3e4916f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1540518614846-7eded433c457?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1564501049412-61c2a3083791?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+            "https://images.unsplash.com/photo-1540518614846-7eded433c457",
+            "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b",
+            "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+            "https://images.unsplash.com/photo-1564501049412-61c2a3083791"
           ],
-          distance: "3.2 km from city",
-          reviews: 1034,
+          location: "Kandy Mountain Resort",
+          isPopular: true,
+          description: "Perfect for families with extra space and child-friendly amenities",
           availability: [
-            { from: "2025-04-01", to: "2025-10-31" }
-          ],
-          accessibility: ["Wheelchair Access"],
-          sustainability: ["Water Conservation", "Waste Reduction", "Local Sourcing"],
-          paymentOptions: ["Credit Card", "Cash"]
-        },
+            { from: "2025-09-30", to: "2025-10-20" } 
+          ]
+        }
       ];
       
-      setAllHotels(hotelsData);
+      setAllRooms(roomsData);
       setLoading(false);
     };
     
-    loadHotels();
+    loadRooms();
   }, []);
 
+  const handleRoomSelect = (room) => {
+    navigation.navigate('HomeView2', {
+      room,
+      checkInDate,
+      checkOutDate,
+      guests
+    });
+  };
+
   return (
-    <View className="flex-1 bg-gray-100">
-      {/* Header with search bar and back button */}
+    <SafeAreaView className="flex-1 bg-gray-100">
+      {/* Header with search bar */}
       <View className="bg-white px-4 py-3 shadow-sm flex-row items-center">
         <TouchableOpacity 
           className="rounded-full p-3 mr-2 bg-gray-100"
@@ -493,7 +472,7 @@ export default function HotelsListing() {
 
       {/* Results Count */}
       <View className="px-4 py-3 bg-white mt-1">
-        <Text className="text-gray-600">{filteredHotels.length} properties found</Text>
+        <Text className="text-gray-600">{filteredRooms.length} rooms available</Text>
         {destination && (
           <Text className="text-gray-500 text-xs mt-1">
             Showing results for {destination}
@@ -510,27 +489,29 @@ export default function HotelsListing() {
       {loading && (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#006D77" />
-          <Text className="mt-4 text-gray-600">Loading hotels...</Text>
+          <Text className="mt-4 text-gray-600">Loading rooms...</Text>
         </View>
       )}
 
-      {/* Hotels List */}
+      {/* Rooms List */}
       {!loading && (
         <ScrollView className="flex-1 px-4 py-3">
-          {filteredHotels.length === 0 ? (
+          {filteredRooms.length === 0 ? (
             <View className="bg-white rounded-xl p-6 items-center justify-center">
               <Ionicons name="search-outline" size={48} color="#9ca3af" />
-              <Text className="text-lg font-semibold text-gray-600 mt-4">No hotels found</Text>
+              <Text className="text-lg font-semibold text-gray-600 mt-4">No rooms found</Text>
               <Text className="text-gray-500 text-center mt-2">
                 Try adjusting your search criteria or filters to find more options.
               </Text>
             </View>
           ) : (
-            filteredHotels.map((hotel) => (
-              <HotelCard 
-                key={hotel.id} 
-                hotel={hotel} 
-                onViewDeal={() => handleViewDeal(hotel)}
+            filteredRooms.map((room) => (
+              <RoomCard 
+                key={room.id} 
+                {...room}
+                onSelect={() => handleRoomSelect(room)}
+                checkInDate={checkInDate}
+                checkOutDate={checkOutDate}
               />
             ))
           )}
@@ -550,11 +531,11 @@ export default function HotelsListing() {
               <View className="w-10 h-1 bg-gray-300 rounded-full" />
             </View>
             
-            <Text className="text-xl font-bold text-gray-800 mb-4 text-center">Search Hotels</Text>
+            <Text className="text-xl font-bold text-gray-800 mb-4 text-center">Search Homes</Text>
             
             {/* Destination Input */}
             <View className="mb-4">
-              <Text className="mb-2 text-sm font-medium text-gray-700">Destination / Hotel</Text>
+              <Text className="mb-2 text-sm font-medium text-gray-700">Destination / Rooms</Text>
               <View className="flex-row items-center rounded-full border-2 border-[#006D77] bg-white px-4 py-2">
                 <MaterialIcons name="location-on" size={22} color="#006D77" />
                 <TextInput
@@ -591,10 +572,11 @@ export default function HotelsListing() {
                 <TouchableOpacity 
                   className="flex-row items-center rounded-full border-2 border-[#006D77] bg-white px-4 py-3"
                   onPress={() =>
-                      setShowDatePicker(prev =>
-                        prev === "checkout" ? null : "checkout"
-                      )
-                    }
+                    setShowDatePicker(prev =>
+                      prev === "checkout" ? null : "checkout"
+                    )
+                  }
+
                 >
                   <FontAwesome name="calendar" size={18} color="#006D77" />
                   <Text className="ml-3 text-base font-semibold text-gray-800">
@@ -604,11 +586,11 @@ export default function HotelsListing() {
               </View>
             </View>
             
-            {/* Calendar Picker with Close Button */}
+            {/* Date Picker */}
             {showDatePicker && (
-              <View className="mb-4">
+              <View>
                 <View className="flex-row justify-between items-center mb-2">
-                  <Text className="text-sm font-medium text-gray-700">
+                  <Text className="text-lg font-semibold text-gray-800">
                     Select {showDatePicker === "checkin" ? "Check-in" : "Check-out"} Date
                   </Text>
                   <TouchableOpacity onPress={closeDatePicker}>
@@ -665,7 +647,7 @@ export default function HotelsListing() {
                 className="flex-1 rounded-full bg-[#006D77] py-4 mb-4"
                 onPress={applySearch}
               >
-                <Text className="text-center text-white font-semibold text-lg">Search Hotels</Text>
+                <Text className="text-center text-white font-semibold text-lg">Search Homes</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -738,7 +720,6 @@ export default function HotelsListing() {
             {/* Rooms Counter */}
             <View className="flex-row justify-between items-center mb-4">
               <View>
-                
                 <Text className="text-base font-medium text-gray-800">Rooms</Text>
               </View>
               <View className="flex-row items-center">
@@ -839,17 +820,18 @@ export default function HotelsListing() {
         </View>
       </Modal>
 
-      {/* Filter Modal - Using the reusable component */}
+      {/* Filter Modal */}
       <FilterComponent
         visible={filterModalVisible}
         onClose={() => setFilterModalVisible(false)}
         filters={filters}
         onFilterChange={setFilters}
         onPriceRangeChange={updatePriceRange}
-        facilitiesOptions={facilitiesOptions}
+        roomTypeOptions={roomTypeOptions}
+        bedTypeOptions={bedTypeOptions}
+        viewTypeOptions={viewTypeOptions}
+        amenitiesOptions={amenitiesOptions}
         accessibilityOptions={accessibilityOptions}
-        sustainabilityOptions={sustainabilityOptions}
-        paymentOptions={paymentOptions}
         toggleFilter={toggleFilter}
         resetAllFilters={resetAllFilters}
       />
@@ -887,6 +869,6 @@ export default function HotelsListing() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }

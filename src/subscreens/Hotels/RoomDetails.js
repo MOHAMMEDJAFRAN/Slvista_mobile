@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, Modal, Share, Alert, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, Image, ScrollView, TouchableOpacity, Modal, Share, Alert, TextInput, ActivityIndicator, Dimensions } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Calendar } from 'react-native-calendars';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -23,6 +23,11 @@ export default function RoomDetails() {
     userName: 'You',
     userAvatar: 'https://randomuser.me/api/portraits/lego/1.jpg'
   });
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [showAllReviews, setShowAllReviews] = useState(false);
+
+  const { width } = Dimensions.get('window');
 
   // Default room data if none is passed
   const defaultRoom = {
@@ -32,7 +37,11 @@ export default function RoomDetails() {
     originalPrice: 175,
     description: "Experience luxury in our spacious Deluxe Ocean View room featuring a king-sized bed, private balcony with stunning ocean vistas, and modern amenities.",
     features: ["Ocean View", "King Bed", "Free WiFi", "Smart TV", "Air Conditioning", "Mini Bar"],
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?ixlib=rb-4.0.3&auto=format&fit=c crop&w=800&q=80"
+    ],
     maxGuests: 2,
     bedType: "King Bed",
     roomSize: "35.5",
@@ -50,6 +59,19 @@ export default function RoomDetails() {
 
   const roomData = room || defaultRoom;
   const hotelData = hotel || defaultHotel;
+
+  // Get room images - handle both single image and multiple images
+  const getRoomImages = () => {
+    if (roomData.images && Array.isArray(roomData.images)) {
+      return roomData.images;
+    } else if (roomData.image) {
+      return [roomData.image];
+    } else {
+      return defaultRoom.images;
+    }
+  };
+
+  const roomImages = getRoomImages();
 
   // Sample reviews data
   const [sampleReviews, setSampleReviews] = useState([
@@ -77,7 +99,55 @@ export default function RoomDetails() {
       date: 'August 5, 2025',
       comment: 'Great location and beautiful room. The breakfast was delicious with plenty of options.',
     },
+    {
+      id: 4,
+      userName: 'David Wilson',
+      userAvatar: 'https://randomuser.me/api/portraits/men/45.jpg',
+      rating: 4.8,
+      date: 'August 3, 2025',
+      comment: 'Amazing experience! The staff was very helpful and the room was perfect for our anniversary celebration.',
+    },
+    {
+      id: 5,
+      userName: 'Lisa Thompson',
+      userAvatar: 'https://randomuser.me/api/portraits/women/28.jpg',
+      rating: 4.2,
+      date: 'July 28, 2025',
+      comment: 'Good value for money. The room was clean and comfortable with a nice view of the ocean.',
+    },
+    {
+      id: 6,
+      userName: 'Robert Garcia',
+      userAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+      rating: 4.9,
+      date: 'July 25, 2025',
+      comment: 'Absolutely loved our stay! The balcony overlooking the ocean was our favorite spot.',
+    }
   ]);
+
+  const [displayedReviews, setDisplayedReviews] = useState(sampleReviews.slice(0, 3));
+
+  // Update displayed reviews when showAllReviews changes
+  useEffect(() => {
+    if (showAllReviews) {
+      setDisplayedReviews(sampleReviews);
+    } else {
+      setDisplayedReviews(sampleReviews.slice(0, 3));
+    }
+  }, [showAllReviews, sampleReviews]);
+
+  // Auto-rotate images in carousel
+  useEffect(() => {
+    if (roomImages && roomImages.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex(prevIndex => 
+          prevIndex === roomImages.length - 1 ? 0 : prevIndex + 1
+        );
+      }, 5000); // Change image every 5 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [roomImages, currentImageIndex]);
 
   // Simulate loading data
   useEffect(() => {
@@ -310,6 +380,28 @@ export default function RoomDetails() {
 
   const averageRating = calculateAverageRating();
 
+  // Skeleton carousel component
+  const SkeletonCarousel = () => (
+    <View className="overflow-hidden rounded-xl h-48 bg-gray-300 relative">
+      {/* Animated shimmer effect */}
+      <View className="absolute top-0 left-0 right-0 bottom-0">
+        <View className="flex-1 bg-gray-400 opacity-30" style={{ transform: [{ translateX: -width }] }} />
+      </View>
+      
+      {/* Dots indicator skeleton */}
+      {roomImages && roomImages.length > 1 && (
+        <View className="absolute bottom-4 left-0 right-0 flex-row justify-center">
+          {roomImages.map((_, index) => (
+            <View 
+              key={index} 
+              className={`h-2 w-2 rounded-full mx-1 ${index === 0 ? 'bg-gray-500' : 'bg-gray-400'}`}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+
   // Loading state
   if (isLoading) {
     return (
@@ -365,13 +457,28 @@ export default function RoomDetails() {
             <Text className="text-sm text-gray-500">{hotelData.name}</Text>
           </View>
 
-          {/* Image */}
+          {/* Image Carousel */}
+          {imageLoading && <SkeletonCarousel />}
+          
           <View className="relative h-48 bg-blue-100">
             <Image
-              source={{ uri: roomData.image }}
+              source={{ uri: roomImages[currentImageIndex] }}
               className="h-full w-full"
               resizeMode="cover"
+              onLoad={() => setImageLoading(false)}
             />
+            
+            {/* Image indicators */}
+            {roomImages && roomImages.length > 1 && (
+              <View className="absolute bottom-4 left-0 right-0 flex-row justify-center">
+                {roomImages.map((_, index) => (
+                  <View 
+                    key={index} 
+                    className={`h-2 w-2 rounded-full mx-1 ${index === currentImageIndex ? 'bg-white' : 'bg-white/50'}`}
+                  />
+                ))}
+              </View>
+            )}
           </View>
 
           {/* Ratings */}
@@ -512,6 +619,10 @@ export default function RoomDetails() {
             <View className="items-center">
               <MaterialIcons name="aspect-ratio" size={20} color="#0e7490" />
               <Text className="mt-1 text-xs text-gray-600">{roomData.roomSize} m²</Text>
+            </View>
+            <View className="items-center">
+              <MaterialIcons name="square-foot" size={20} color="#0e7490" />
+              <Text className="mt-1 text-xs text-gray-600">{roomData.roomSize} sqm</Text>
             </View>
           </View>
 
@@ -656,7 +767,7 @@ export default function RoomDetails() {
 
           {/* Sample Reviews */}
           <View className="mt-4">
-            {sampleReviews.map((review) => (
+            {displayedReviews.map((review) => (
               <View
                 key={review.id}
                 className="mb-4 border-b border-gray-200 pb-4 last:mb-0 last:border-b-0 last:pb-0">
@@ -675,9 +786,26 @@ export default function RoomDetails() {
                 </View>
                 <Text className="mb-2 text-xs text-gray-500">{review.date}</Text>
                 <Text className="text-sm text-gray-700">{review.comment}</Text>
+                <View className="border border-gray-200 w-full my-3" />
               </View>
             ))}
           </View>
+
+          {/* Show More/Less Button */}
+          {sampleReviews.length > 3 && (
+            <TouchableOpacity
+              className="mt-4 flex-row items-center justify-center"
+              onPress={() => setShowAllReviews(!showAllReviews)}>
+              <Text className="mr-1 font-medium text-blue-600">
+                {showAllReviews ? 'Show Less' : `Show All ${sampleReviews.length} Reviews`}
+              </Text>
+              <MaterialIcons
+                name={showAllReviews ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                size={20}
+                color="#0e7490"
+              />
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 

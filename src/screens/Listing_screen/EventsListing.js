@@ -32,50 +32,6 @@ const EventsListing = () => {
     "General": "calendar"
   };
 
-  // Sample events data for fallback
-  const sampleEventsData = [
-    {
-      id: 1,
-      name: "Summer Music Festival",
-      category: "Music",
-      images: [
-        "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bXVzaWMlMjBmZXN0aXZhbHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60",
-      ],
-      date: "July 15, 2023",
-      time: "6:00 PM - 11:00 PM",
-      location: "City Park Amphitheater",
-      rating: 4.8,
-      price: "$$$",
-      priceType: "paid",
-      ticketStatus: "Selling Fast",
-      website: "https://summerfestival.com",
-      email: "info@summerfestival.com",
-      phone: "+1 (555) 123-4567",
-      description: "Annual summer music festival featuring top artists across multiple genres.",
-      isActive: true // Added active status
-    },
-    {
-      id: 2,
-      name: "Food & Wine Expo",
-      category: "Food & Drink",
-      images: [
-        "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8cmVzdGF1cmFudHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60",
-      ],
-      date: "July 22, 2023",
-      time: "12:00 PM - 8:00 PM",
-      location: "Convention Center",
-      rating: 4.6,
-      price: "$$",
-      priceType: "paid",
-      ticketStatus: "Available",
-      website: "https://foodwineexpo.com",
-      email: "tickets@foodwineexpo.com",
-      phone: "+1 (555) 234-5678",
-      description: "Experience the finest food and wine from local and international vendors.",
-      isActive: false // Added active status
-    }
-  ];
-
   // Fetch events from API
   useEffect(() => {
     const fetchEvents = async () => {
@@ -122,7 +78,7 @@ const EventsListing = () => {
           date: event.eventDate ? new Date(event.eventDate).toLocaleDateString() : "Date TBA",
           time: event.eventTime || "TBA",
           location: event.venue || "Location TBA",
-          rating: 4.5, // Default rating
+          rating: event.rating || 4.5, // Default rating
           price: "$$", // Default price indicator
           priceType: "paid", // Default to paid
           ticketStatus: "Available",
@@ -145,12 +101,12 @@ const EventsListing = () => {
         console.error("Error fetching events:", err);
         console.error("Error details:", err.response?.data || err.message);
         
-        let errorMessage = "Failed to load events. Please try again.";
+        let errorMessage = "Failed to connect to server.";
         
         if (err.response) {
           errorMessage = `Server error: ${err.response.status}`;
           if (err.response.status === 404) {
-            errorMessage = "Events endpoint not found";
+            errorMessage = "Faild to connect to server";
           } else if (err.response.status === 500) {
             errorMessage = "Server error. Please try again later.";
           }
@@ -161,10 +117,8 @@ const EventsListing = () => {
         }
         
         setError(errorMessage);
-        
-        // Fallback to sample data
-        setEventsData(sampleEventsData);
-        setFilteredData(sampleEventsData);
+        setEventsData([]);
+        setFilteredData([]);
       } finally {
         setLoading(false);
       }
@@ -183,8 +137,6 @@ const EventsListing = () => {
     { id: "name", label: "Name: A to Z", icon: "sort-alphabetical-ascending" },
     { id: "nameDesc", label: "Name: Z to A", icon: "sort-alphabetical-descending" },
     { id: "rating", label: "Highest Rated", icon: "sort-descending" },
-    // { id: "price", label: "Price: Low to High", icon: "sort-numeric-ascending" },
-    // { id: "priceDesc", label: "Price: High to Low", icon: "sort-numeric-descending" }
   ];
 
   // Apply filters whenever activeFilters changes
@@ -387,7 +339,7 @@ const EventsListing = () => {
             setFilteredData(transformedData);
           }
         } catch (err) {
-          setError("Failed to load events. Using sample data.");
+          setError("Failed to connect to server");
         } finally {
           setLoading(false);
         }
@@ -408,17 +360,11 @@ const EventsListing = () => {
   if (error && eventsData.length === 0) {
     return (
       <View className="flex-1 bg-gray-50 justify-center items-center p-4">
-        <MaterialCommunityIcons name="alert-circle" size={48} color="#dc2626" />
-        <Text className="text-red-600 text-lg mt-4 text-center font-semibold">
-          {error}
+        <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#dc2626" />
+        <Text className="text-red-600 text-lg mt-4 text-center font-semibold">{error}</Text>
+        <Text className="text-gray-500 text-sm mt-2 text-center">
+          Please check your connection and try again
         </Text>
-        <TouchableOpacity 
-          onPress={retryFetch}
-          className="mt-6 bg-[#006D77] px-6 py-3 rounded-xl flex-row items-center"
-        >
-          <Ionicons name="reload" size={18} color="white" style={{marginRight: 8}} />
-          <Text className="text-white font-semibold">Try Again</Text>
-        </TouchableOpacity>
       </View>
     );
   }
@@ -447,19 +393,6 @@ const EventsListing = () => {
           )}
         </TouchableOpacity>
       </View>
-
-      {/* Error Banner */}
-      {error && eventsData.length > 0 && (
-        <View className="bg-yellow-100 p-3 border-b border-yellow-200">
-          <View className="flex-row items-center">
-            <Ionicons name="warning" size={20} color="#d97706" />
-            <Text className="text-yellow-800 ml-2 text-sm flex-1">{error} Using sample data.</Text>
-            <TouchableOpacity onPress={retryFetch}>
-              <Text className="text-[#006D77] font-semibold">Retry</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
 
       {/* Results Summary */}
       <View className="p-4 bg-white border-b border-gray-200 flex-row justify-between items-center">
@@ -550,45 +483,19 @@ const EventsListing = () => {
                       />
                       <Text className="text-gray-500 text-sm mr-5">{item.category}</Text>
                     </View>
-                    {/* {renderPriceRange(item.price)} */}
                   </View>
                   
-                  {/* <View className="mt-2">
-                    <View className={`rounded-full px-3 py-1 self-start ${getTicketStatusColor(item.ticketStatus)}`}>
-                      <Text className="text-xs font-medium">{item.ticketStatus}</Text>
-                    </View>
-                  </View> */}
                   
-                  {/* <View className="flex-row mt-3">
-                    <TouchableOpacity 
-                      className="p-2 bg-gray-100 rounded-full mr-2"
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(`tel:${item.phone}`);
-                      }}
-                    >
-                      <Feather name="phone" size={16} color="#006D77" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      className="p-2 bg-gray-100 rounded-full mr-2"
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        Linking.openURL(`mailto:${item.email}`);
-                      }}
-                    >
-                      <Feather name="mail" size={16} color="#006D77" />
-                    </TouchableOpacity>
-                  </View> */}
                 </View>
               </View>
               <TouchableOpacity 
-                className="mt-4 bg-[#E6F6F8] p-3 rounded-xl flex-row items-center justify-between"
-                onPress={() => handleViewDetails(item)}
-                activeOpacity={0.8}
-              >
-                <Text className="text-[#006D77] font-semibold">View Details</Text>
-                <Ionicons name="arrow-forward" size={18} color="#006D77" />
-              </TouchableOpacity>
+                    className="mt-4 bg-[#E6F6F8] p-3 rounded-xl flex-row items-center justify-between"
+                    onPress={() => handleViewDetails(item)}
+                    activeOpacity={0.8}
+                  >
+                    <Text className="text-[#006D77] font-semibold">View Details</Text>
+                    <Ionicons name="arrow-forward" size={18} color="#006D77" />
+                  </TouchableOpacity>
             </TouchableOpacity>
           ))
         ) : (
@@ -611,7 +518,7 @@ const EventsListing = () => {
         )}
       </ScrollView>
 
-            {/* Filter Modal */}
+      {/* Filter Modal */}
       <Modal
         visible={filtersOpen}
         animationType="slide"
@@ -692,34 +599,6 @@ const EventsListing = () => {
                   ))}
                 </View>
               </View>
-              
-              {/* Price Type Filter */}
-              {/* <View className="mb-6">
-                <Text className="text-lg font-semibold text-gray-800 mb-3">Price Type</Text>
-                <View className="flex-row flex-wrap">
-                  {priceTypes.map((type) => (
-                    <TouchableOpacity
-                      key={type}
-                      onPress={() => toggleFilter("priceType", type)}
-                      className={`px-4 py-2 rounded-full mr-2 mb-2 ${
-                        activeFilters.priceType.includes(type)
-                          ? "bg-[#006D77]"
-                          : "bg-gray-100"
-                      }`}
-                    >
-                      <Text
-                        className={
-                          activeFilters.priceType.includes(type)
-                            ? "text-white font-semibold"
-                            : "text-gray-700"
-                        }
-                      >
-                        {type === "free" ? "Free" : "Paid"}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View> */}
               
               {/* Sort By Filter */}
               <View className="mb-6">

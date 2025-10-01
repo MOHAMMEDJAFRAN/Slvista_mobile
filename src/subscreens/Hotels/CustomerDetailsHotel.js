@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Image, Alert } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StatusBar, Image, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ReserveButton from 'components/ReserveButton';
 import { useNavigation, useRoute } from '@react-navigation/native';

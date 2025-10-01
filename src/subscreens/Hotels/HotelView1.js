@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ImageBackground, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ImageBackground, ScrollView, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import RoomCard from '../../../components/RoomCard';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function HotelView1({ route = {}, navigation }) {
-  // Get hotel data passed from HotelsListing
-  
   const { hotel, checkInDate, checkOutDate, guests } = route.params || {};
-  
   const [hotelData, setHotelData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageLoading, setImageLoading] = useState(true);
 
-  // Sample hotel database
+  const { width } = Dimensions.get('window');
+
+  // Sample hotel database with multiple images for each room
   const hotelDatabase = {
     1: {
       id: 1,
@@ -24,7 +26,11 @@ export default function HotelView1({ route = {}, navigation }) {
       currency: "$",
       sponsored: true,
       location: "Colombo",
-      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      images: [
+        "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+      ],
       distance: "2.5 km from center",
       reviews: 1247,
       accessibility: ["Wheelchair Access", "Elevator"],
@@ -37,7 +43,11 @@ export default function HotelView1({ route = {}, navigation }) {
           price: 120,
           description: "Spacious room with king-sized bed and city view",
           features: ["Free WiFi", "Air Conditioning", "TV", "Coffee Maker"],
-          image: "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&h=600&fit=crop&auto=format&q=80&brightness=110",
+          images: [
+            "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&h=600&fit=crop&auto=format&q=80&brightness=110",
+            "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+          ],
           maxGuests: 2,
           bedType: "King Bed",
           size: "35.5",
@@ -50,7 +60,11 @@ export default function HotelView1({ route = {}, navigation }) {
           price: 180,
           description: "Luxurious suite with separate living area",
           features: ["Free WiFi", "Air Conditioning", "TV", "Mini Bar", "Jacuzzi"],
-          image: "https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=800&h=600&fit=crop&auto=format&q=80",
+          images: [
+            "https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=800&h=600&fit=crop&auto=format&q=80",
+            "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+          ],
           maxGuests: 3,
           bedType: "King Bed",
           size: "55",
@@ -63,7 +77,11 @@ export default function HotelView1({ route = {}, navigation }) {
           price: 220,
           description: "Perfect for families with extra space and amenities",
           features: ["Free WiFi", "Air Conditioning", "TV", "Coffee Maker", "Extra Bed"],
-          image: "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&h=600&fit=crop&auto=format&q=80",
+          images: [
+            "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&h=600&fit=crop&auto=format&q=80",
+            "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+          ],
           maxGuests: 4,
           bedType: "2 Queen Beds",
           size: "45.5",
@@ -82,7 +100,11 @@ export default function HotelView1({ route = {}, navigation }) {
       currency: "$",
       sponsored: false,
       location: "Galle",
-      image: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      images: [
+        "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1540518614846-7eded433c457?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1564501049412-61c2a3083791?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+      ],
       distance: "0.5 km from beach",
       reviews: 892,
       accessibility: ["Wheelchair Access", "Elevator", "Accessible Bathroom"],
@@ -95,7 +117,11 @@ export default function HotelView1({ route = {}, navigation }) {
           price: 220,
           description: "Room with stunning ocean view",
           features: ["Free WiFi", "Air Conditioning", "TV", "Balcony"],
-          image: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&h=600&fit=crop&auto=format&q=80",
+          images: [
+            "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&h=600&fit=crop&auto=format&q=80",
+            "https://images.unsplash.com/photo-1540518614846-7eded433c457?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1564501049412-61c2a3083791?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+          ],
           maxGuests: 2,
           bedType: "King Bed",
           size: "40",
@@ -108,7 +134,11 @@ export default function HotelView1({ route = {}, navigation }) {
           price: 350,
           description: "Private villa with direct beach access",
           features: ["Free WiFi", "Air Conditioning", "Private Pool", "Kitchen", "Beach Access"],
-          image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop&auto=format&q=80",
+          images: [
+            "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop&auto=format&q=80",
+            "https://images.unsplash.com/photo-1540518614846-7eded433c457?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1564501049412-61c2a3083791?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+          ],
           maxGuests: 4,
           bedType: "King Bed + Sofa Bed",
           size: "75",
@@ -127,7 +157,11 @@ export default function HotelView1({ route = {}, navigation }) {
       currency: "$",
       sponsored: false,
       location: "Colombo",
-      image: "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&h=600&fit=crop&auto=format&q=80",
+      images: [
+        "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&h=600&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+      ],
       distance: "City center",
       reviews: 567,
       accessibility: ["Elevator"],
@@ -140,7 +174,11 @@ export default function HotelView1({ route = {}, navigation }) {
           price: 85,
           description: "Comfortable room with all essential amenities",
           features: ["Free WiFi", "Air Conditioning", "TV", "Work Desk"],
-          image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&h=600&fit=crop&auto=format&q=80",
+          images: [
+            "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&h=600&fit=crop&auto=format&q=80",
+            "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&h=600&fit=crop&auto=format&q=80"
+          ],
           maxGuests: 2,
           bedType: "Queen Bed",
           size: "28",
@@ -153,7 +191,11 @@ export default function HotelView1({ route = {}, navigation }) {
           price: 120,
           description: "Room with extra workspace and amenities for business travelers",
           features: ["Free WiFi", "Air Conditioning", "TV", "Large Work Desk", "Printer"],
-          image: "https://images.unsplash.com/photo-1574643156929-51fa098b39c7?w=800&h=600&fit=crop&auto=format&q=80",
+          images: [
+            "https://images.unsplash.com/photo-1574643156929-51fa098b39c7?w=800&h=600&fit=crop&auto=format&q=80",
+            "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+          ],
           maxGuests: 2,
           bedType: "King Bed",
           size: "32",
@@ -163,6 +205,19 @@ export default function HotelView1({ route = {}, navigation }) {
       ]
     }
   };
+
+  // Auto-rotate images in carousel
+  useEffect(() => {
+    if (hotelData && hotelData.images && hotelData.images.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex(prevIndex => 
+          prevIndex === hotelData.images.length - 1 ? 0 : prevIndex + 1
+        );
+      }, 5000); // Change image every 5 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [hotelData, currentImageIndex]);
 
   // Function to fetch hotel data
   const fetchHotelData = async () => {
@@ -390,6 +445,26 @@ export default function HotelView1({ route = {}, navigation }) {
     </View>
   );
 
+  // Skeleton carousel component
+  const SkeletonCarousel = () => (
+    <View className="overflow-hidden rounded-2xl h-72 bg-gray-300 relative">
+      {/* Animated shimmer effect */}
+      <View className="absolute top-0 left-0 right-0 bottom-0">
+        <View className="flex-1 bg-gray-400 opacity-30" style={{ transform: [{ translateX: -width }] }} />
+      </View>
+      
+      {/* Dots indicator skeleton */}
+      <View className="absolute bottom-4 left-0 right-0 flex-row justify-center">
+        {[1, 2, 3].map((_, index) => (
+          <View 
+            key={index} 
+            className={`h-2 w-2 rounded-full mx-1 ${index === 0 ? 'bg-gray-500' : 'bg-gray-400'}`}
+          />
+        ))}
+      </View>
+    </View>
+  );
+
   // Show loading state
   if (loading) {
     return renderLoading();
@@ -399,8 +474,6 @@ export default function HotelView1({ route = {}, navigation }) {
   if (error && !hotelData) {
     return renderError();
   }
-
-  const hotelImage = { uri: hotelData.image };
 
   return (
     <View className="flex-1 bg-gray-100">
@@ -451,26 +524,49 @@ export default function HotelView1({ route = {}, navigation }) {
 
       {/* Scrollable Content */}
       <ScrollView className="p-4">
-        {/* Hotel Info Card with background image */}
-        <ImageBackground
-          source={hotelImage}
-          className="overflow-hidden rounded-2xl h-72"
-          resizeMode="cover"
-        >
-          <View className="flex-1 justify-end p-4 bg-black/30">
-            {/* Star Rating */}
-            {renderStarRating(hotelData.stars)}
+        {/* Hotel Image Carousel */}
+        {imageLoading && <SkeletonCarousel />}
+        
+        <View className="overflow-hidden rounded-2xl h-72 relative">
+          <ImageBackground
+            source={{ uri: hotelData.images[currentImageIndex] }}
+            className="flex-1"
+            resizeMode="cover"
+            onLoad={() => setImageLoading(false)}
+          >
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.7)']}
+              className="absolute bottom-0 left-0 right-0 h-1/2"
+            />
             
-            {/* Hotel Name */}
-            <Text className="text-2xl font-bold text-white">{hotelData.name}</Text>
+            {/* Image indicators */}
+            {hotelData.images.length > 1 && (
+              <View className="absolute bottom-4 left-0 right-0 flex-row justify-center">
+                {/* {hotelData.images.map((_, index) => (
+                  <View 
+                    key={index} 
+                    className={`h-2 w-2 rounded-full mx-1 ${index === currentImageIndex ? 'bg-white' : 'bg-white/50'}`}
+                  />
+                ))} */}
+              </View>
+            )}
             
-            {/* Location */}
-            <View className="flex-row items-center mt-1">
-              <Ionicons name="location" size={16} color="white" />
-              <Text className="ml-1 text-white">{hotelData.location} • {hotelData.distance}</Text>
+            {/* Hotel Info Overlay */}
+            <View className="absolute bottom-0 left-0 right-0 p-4">
+              {/* Star Rating */}
+              {renderStarRating(hotelData.stars)}
+              
+              {/* Hotel Name */}
+              <Text className="text-2xl font-bold text-white">{hotelData.name}</Text>
+              
+              {/* Location */}
+              <View className="flex-row items-center mt-1">
+                <Ionicons name="location" size={16} color="white" />
+                <Text className="ml-1 text-white">{hotelData.location} • {hotelData.distance}</Text>
+              </View>
             </View>
-          </View>
-        </ImageBackground>
+          </ImageBackground>
+        </View>
 
         {/* Features Box */}
         <View className="mt-4 bg-white rounded-xl p-4 shadow-sm">
@@ -532,7 +628,7 @@ export default function HotelView1({ route = {}, navigation }) {
                   price={room.price}
                   description={room.description}
                   features={room.features}
-                  image={room.image}
+                  images={room.images} // Pass multiple images to RoomCard
                   maxGuests={room.maxGuests}
                   bedType={room.bedType}
                   roomSize={room.size}

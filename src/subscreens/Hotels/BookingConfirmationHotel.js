@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Image, Linking, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Image, Linking, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -161,7 +162,7 @@ export default function BookingConfirmationHotel() {
   };
 
   const handleGoHome = () => {
-    navigation.navigate('Home');
+    navigation.navigate('Main');
   };
 
   // Simulate confirmation process

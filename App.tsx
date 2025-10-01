@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import SignInScreen from './src/screens/signin';
 import Home from './src/screens/homeScreen';
 import SignUpScreen from './src/screens/SignUp';
@@ -34,7 +36,11 @@ import PersonalDetailsScreen from '~/screens/Account_Screens/PersonalDetailsScre
 import AppPreferencesPage from '~/screens/Account_Screens/AppPreferencesScreen';
 import EmailPreferencesPage from '~/screens/Account_Screens/EmailPreferencesPage';
 import NotificationPreferencesPage from '~/screens/Account_Screens/NotificationPreferencesPage';
-
+import MyReviews from '~/screens/Account_Screens/MyReviews';
+import PrivacyAndData from '~/screens/Account_Screens/PrivacyAndDataManagement';
+import Guidelines from '~/screens/Account_Screens/ContentGuidelines';
+import CustomerSupport from '~/screens/Account_Screens/CustomerSupport';
+import ListProperty from '~/screens/Account_Screens/ListYourProperty';
 
 import HotelView1WithSafeArea from './components/HotelView1WithSafeArea';
 import HomeView2 from '~/subscreens/HomeStays/HomeView2';
@@ -46,10 +52,14 @@ import BookingConfirmationHome from '~/subscreens/HomeStays/BookingConfirmationH
 import BookingConfirmationHotel from '~/subscreens/Hotels/BookingConfirmationHotel';
 import Activity from '~/subscreens/SecondListings/Activity';
 import FoodAndBeverage from '~/subscreens/SecondListings/FoodAndBeverage';
-import HomeView1 from '~/subscreens/HomeStays/HomeView1';
+import HomeListing from '~/subscreens/HomeStays/HomeListing';
 import RoomDetails from '~/subscreens/Hotels/RoomDetails';
 import HotelsListing from '~/subscreens/Hotels/HotelsListing';
-
+import ActivityDetailsView from '~/subscreens/SecondListings/ActivityDetailsView.js';
+import FoodListing from '~/subscreens/SecondListings/FoodAndBeverage';
+import FoodDetailsView from '~/subscreens/SecondListings/FoodDetaisView';
+import Transport from '~/subscreens/SecondListings/Transport';
+import TransportDetailsView from '~/subscreens/SecondListings/TransportDetailsView';
 
 import "./global.css";
 
@@ -88,6 +98,11 @@ export type RootStackParamList = {
   AppPreferencesPage: undefined;
   EmailPreferencesPage: undefined;
   NotificationPreferencesPage: undefined;
+  MyReviews: undefined;
+  PrivacyAndData: undefined;
+  Guidelines: undefined;
+  CustomerSupport: undefined;
+  ListProperty: undefined;
 
   HotelView1WithSafeArea: undefined; 
   RoomDetails: undefined;
@@ -99,10 +114,14 @@ export type RootStackParamList = {
   BookingConfirmationHome: undefined;
   Activity:undefined;
   FoodAndBeverage:undefined;
-  HomeView1:undefined;
+  HomeListing:undefined;
   HomeView2:undefined;
   HotelsListing: undefined;
-  
+  ActivityDetailsView:undefined;
+  FoodListing: undefined;
+  FoodDetailsView: undefined;
+  Transport: undefined;
+  TransportDetailsView: undefined;
 };
 
 export type BottomTabParamList = {
@@ -116,40 +135,51 @@ export type BottomTabParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 
+// Internet Connection Error Component
+const ConnectionError = () => (
+  <View style={styles.connectionError}>
+    <Ionicons name="wifi-outline" size={64} color="#9CA3AF" />
+    <Text style={styles.errorTitle}>No Internet Connection</Text>
+    <Text style={styles.errorMessage}>
+      Please check your internet connection and try again.
+    </Text>
+  </View>
+);
+
 // Create a SafeAreaWrapper component for individual screens
-const SafeAreaWrapper = ({ children }: { children: React.ReactNode }) => (
+const SafeAreaWrapper = ({ children, showConnectionError = false }: { children: React.ReactNode; showConnectionError?: boolean }) => (
   <SafeAreaView style={{ flex: 1 }} edges={['top', 'right', 'left', 'bottom']}>
-    {children}
+    {showConnectionError ? <ConnectionError /> : children}
   </SafeAreaView>
 );
 
-// Wrapper components for each tab screen with SafeAreaWrapper
-const HomeWithSafeArea = () => (
-  <SafeAreaWrapper>
+// Wrapper components for each tab screen with SafeAreaWrapper and connection check
+const HomeWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <Home />
   </SafeAreaWrapper>
 );
 
-const ExploreWithSafeArea = () => (
-  <SafeAreaWrapper>
+const ExploreWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <Explore />
   </SafeAreaWrapper>
 );
 
-const SavedWithSafeArea = () => (
-  <SafeAreaWrapper>
+const SavedWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <Saved />
   </SafeAreaWrapper>
 );
 
-const BookingsWithSafeArea = () => (
-  <SafeAreaWrapper>
+const BookingsWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <Bookings />
   </SafeAreaWrapper>
 );
 
-const AccountWithSafeArea = () => (
-  <SafeAreaWrapper>
+const AccountWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <Account />
   </SafeAreaWrapper>
 );
@@ -172,92 +202,80 @@ const SplashWithSafeArea = () => (
   </SafeAreaWrapper>
 );
 
-const SponsoredStaysWithSafeArea = () => (
-  <SafeAreaWrapper>
+const SponsoredStaysWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <SponsoredStaysScreen />
   </SafeAreaWrapper>
 );
 
-const TransportListingWithSafeArea = () => (
-  <SafeAreaWrapper>
+const TransportListingWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <TransportListing />
   </SafeAreaWrapper>
 );
 
-const ActivitiesListingWithSafeArea = () => (
-  <SafeAreaWrapper>
+const ActivitiesListingWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <ActivitiesListing />
   </SafeAreaWrapper>
 );
 
-const FoodBeverageListingWithSafeArea = () => (
-  <SafeAreaWrapper>
+const FoodBeverageListingWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <FoodBeverageListing />
   </SafeAreaWrapper>
 );
 
-const EventsListingWithSafeArea = () => (
-  <SafeAreaWrapper>
+const EventsListingWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <EventsListing />
   </SafeAreaWrapper>
 );
 
-const LocalArtistsListingWithSafeArea = () => (
-  <SafeAreaWrapper>
+const LocalArtistsListingWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <LocalArtistsListing />
   </SafeAreaWrapper>
 );
 
-const ShoppingListingWithSafeArea = () => (
-  <SafeAreaWrapper>
+const ShoppingListingWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <ShoppingListing />
   </SafeAreaWrapper>
 );
 
-const HotelsListingWithSafeArea = () => (
-  <SafeAreaWrapper>
+const HotelsListingWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <HotelsListing />
   </SafeAreaWrapper>
 );
 
-const TourGuidesListingWithSafeArea = () => (
-  <SafeAreaWrapper>
+const TourGuidesListingWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <TourGuidesListing />
   </SafeAreaWrapper>
 );
 
-const OtherServicesListingWithSafeArea = () => (
-  <SafeAreaWrapper>
+const OtherServicesListingWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <OtherServicesListing />
   </SafeAreaWrapper>
 );
 
-const RoomDetailsWithSafeArea = () => (
-  <SafeAreaWrapper>
+const RoomDetailsWithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
     <RoomDetails />
   </SafeAreaWrapper>
 );
 
-const CustomerDetailsHotelWithSafeArea = () => (
-  <SafeAreaWrapper>
-    <CustomerDetailsHotel />
+const HomeView2WithSafeArea = ({ isConnected }: { isConnected: boolean }) => (
+  <SafeAreaWrapper showConnectionError={!isConnected}>
+    <HomeView2 />
   </SafeAreaWrapper>
 );
 
-const PaymentDetailsHotelWithSafeArea = () => (
-  <SafeAreaWrapper>
-    <PaymentDetailsHotel />
-  </SafeAreaWrapper>
-);
-
-const BookingConfirmationHotelWithSafeArea = () => (
-  <SafeAreaWrapper>
-    <BookingConfirmationHotel />
-  </SafeAreaWrapper>
-);
-
-// Bottom Tab Navigator
-const BottomTabNavigator = () => {
+// Bottom Tab Navigator with connection state
+const BottomTabNavigator = ({ isConnected }: { isConnected: boolean }) => {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -268,15 +286,16 @@ const BottomTabNavigator = () => {
           borderTopColor: '#f3f4f6',
           paddingTop: 11,
           paddingBottom: 8,
-          height: 80, // Reduced heigh
+          height: 80,
           marginTop: -15,
-          
+          // Hide tab bar when no internet
+          display: isConnected ? 'flex' : 'none',
         },
       }}
     >
       <Tab.Screen
         name="HomeTab"
-        component={HomeWithSafeArea}
+        component={() => <HomeWithSafeArea isConnected={isConnected} />}
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ focused, color, size }) => (
@@ -292,7 +311,7 @@ const BottomTabNavigator = () => {
       />
       <Tab.Screen
         name="ExploreTab"
-        component={ExploreWithSafeArea}
+        component={() => <ExploreWithSafeArea isConnected={isConnected} />}
         options={{
           tabBarLabel: 'Explore',
           tabBarIcon: ({ focused, color, size }) => (
@@ -308,7 +327,7 @@ const BottomTabNavigator = () => {
       />
       <Tab.Screen
         name="SavedTab"
-        component={SavedWithSafeArea}
+        component={() => <SavedWithSafeArea isConnected={isConnected} />}
         options={{
           tabBarLabel: 'Saved',
           tabBarIcon: ({ focused, color, size }) => (
@@ -324,7 +343,7 @@ const BottomTabNavigator = () => {
       />
       <Tab.Screen
         name="BookingsTab"
-        component={BookingsWithSafeArea}
+        component={() => <BookingsWithSafeArea isConnected={isConnected} />}
         options={{
           tabBarLabel: 'Bookings',
           tabBarIcon: ({ focused, color, size }) => (
@@ -340,7 +359,7 @@ const BottomTabNavigator = () => {
       />
       <Tab.Screen
         name="AccountTab"
-        component={AccountWithSafeArea}
+        component={() => <AccountWithSafeArea isConnected={isConnected} />}
         options={{
           tabBarLabel: 'Account',
           tabBarIcon: ({ focused, color, size }) => (
@@ -358,7 +377,18 @@ const BottomTabNavigator = () => {
   );
 };
 
-const App = () => {
+// Main component that handles the connection error screen
+const MainApp = ({ isConnected }: { isConnected: boolean }) => {
+  if (!isConnected) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={{ flex: 1 }} edges={['top', 'right', 'left', 'bottom']}>
+          <ConnectionError />
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <NavigationContainer>
@@ -383,67 +413,66 @@ const App = () => {
           
           <Stack.Screen 
             name="Main" 
-            component={BottomTabNavigator}
+            component={() => <BottomTabNavigator isConnected={isConnected} />}
             options={{ headerShown: false, headerBackVisible: false }} 
           />
           
           <Stack.Screen 
             name="SponsoredStaysScreen" 
-            component={SponsoredStaysWithSafeArea}
+            component={() => <SponsoredStaysWithSafeArea isConnected={isConnected} />}
             options={{ headerShown: false }} 
           />
 
           {/* Listing Screens */}
           <Stack.Screen 
             name="TransportListing" 
-            component={TransportListingWithSafeArea}
+            component={() => <TransportListingWithSafeArea isConnected={isConnected} />}
             options={{ headerShown: false }} 
           />
 
           <Stack.Screen 
             name="ActivitiesListing" 
-            component={ActivitiesListingWithSafeArea}
+            component={() => <ActivitiesListingWithSafeArea isConnected={isConnected} />}
             options={{ headerShown: false }} 
           />
 
           <Stack.Screen 
             name="FoodBeverageListing" 
-            component={FoodBeverageListingWithSafeArea}
+            component={() => <FoodBeverageListingWithSafeArea isConnected={isConnected} />}
             options={{ headerShown: false }} 
           />
 
           <Stack.Screen 
             name="EventsListing" 
-            component={EventsListingWithSafeArea}
+            component={() => <EventsListingWithSafeArea isConnected={isConnected} />}
             options={{ headerShown: false }} 
           />
 
           <Stack.Screen 
             name="LocalArtistsListing" 
-            component={LocalArtistsListingWithSafeArea}
+            component={() => <LocalArtistsListingWithSafeArea isConnected={isConnected} />}
             options={{ headerShown: false }} 
           />
 
           <Stack.Screen 
             name="ShoppingListing" 
-            component={ShoppingListingWithSafeArea}
+            component={() => <ShoppingListingWithSafeArea isConnected={isConnected} />}
             options={{ headerShown: false }} 
           />
 
           <Stack.Screen 
             name="TourGuidesListing" 
-            component={TourGuidesListingWithSafeArea}
+            component={() => <TourGuidesListingWithSafeArea isConnected={isConnected} />}
             options={{ headerShown: false }} 
           />
 
           <Stack.Screen 
             name="OtherServicesListing" 
-            component={OtherServicesListingWithSafeArea}
+            component={() => <OtherServicesListingWithSafeArea isConnected={isConnected} />}
             options={{ headerShown: false }} 
           />
 
           {/* Listing Details Screens */}
-
           <Stack.Screen name="TransportDetails" component={TransportDetails} options={{ headerShown: false }}  />
           <Stack.Screen name="ActivityDetails" component={ActivityDetails} options={{ headerShown: false }} />
           <Stack.Screen name="FoodBeverageDetails" component={FoodBeverageDetails} options={{ headerShown: false }} />
@@ -459,24 +488,87 @@ const App = () => {
           <Stack.Screen name="AppPreferencesPage" component={AppPreferencesPage} options={{ title: 'App Preferences' }}/>
           <Stack.Screen name="EmailPreferencesPage" component={EmailPreferencesPage} options={{ title: 'Email Preferences' }}/>
           <Stack.Screen name="NotificationPreferencesPage" component={NotificationPreferencesPage} options={{ title: 'Notification' }}/>
+          <Stack.Screen name="MyReviews" component={MyReviews} options={{ title: 'MyReviews' }}/>
+          <Stack.Screen name="PrivacyAndData" component={PrivacyAndData} options={{ title: 'Privacy And Data Management' }}/>
+          <Stack.Screen name="Guidelines" component={Guidelines} options={{ title: 'Content Guidelines' }}/>
+          <Stack.Screen name="CustomerSupport" component={CustomerSupport} options={{ title: 'Customer Support' }}/>
+          <Stack.Screen name="ListProperty" component={ListProperty} options={{ title: 'List Your Property' }}/>
 
           <Stack.Screen name="HotelView1WithSafeArea" component={HotelView1WithSafeArea} options={{headerShown: false}} />
-          <Stack.Screen name="RoomDetails" component={RoomDetailsWithSafeArea}  options={{headerShown: false}}/>
-          <Stack.Screen name="CustomerDetailsHotel" component={CustomerDetailsHotelWithSafeArea} options={{headerShown: false}}/>
-          <Stack.Screen name='CustomerDetailsHome' component={CustomerDetailsHome}/>
-          <Stack.Screen name="PaymentDetailsHotel" component={PaymentDetailsHotelWithSafeArea} options={{headerShown: false}}/>
-          <Stack.Screen name='PaymentDetailsHome' component={PaymentDetailsHome}/>
-          <Stack.Screen name="BookingConfirmationHotel" component={BookingConfirmationHotelWithSafeArea} options={{headerShown: false}}/>
+          <Stack.Screen name="RoomDetails" component={() => <RoomDetailsWithSafeArea isConnected={isConnected} />} options={{headerShown: false}}/>
+          <Stack.Screen name="CustomerDetailsHotel" component={CustomerDetailsHotel} options={{headerShown: false}}/>
+          <Stack.Screen name='CustomerDetailsHome' component={CustomerDetailsHome} options={{headerShown: false}}/>
+          <Stack.Screen name="PaymentDetailsHotel" component={PaymentDetailsHotel} options={{headerShown: false}}/>
+          <Stack.Screen name='PaymentDetailsHome' component={PaymentDetailsHome} options={{headerShown: false}}/>
+          <Stack.Screen name="BookingConfirmationHotel" component={BookingConfirmationHotel} options={{headerShown: false}}/>
           <Stack.Screen name='BookingConfirmationHome' component={BookingConfirmationHome}/>
-          <Stack.Screen name="Activity" component={Activity}/>
+          <Stack.Screen name="Activity" component={Activity} options={{headerShown: false}}/>
           <Stack.Screen name="FoodAndBeverage" component={FoodAndBeverage}/>
-          <Stack.Screen name="HomeView1" component={HomeView1}/>
-          <Stack.Screen name='HomeView2' component={HomeView2}/>
-          <Stack.Screen name='HotelsListing' component={HotelsListingWithSafeArea} options={{headerShown: false}}/>
+          <Stack.Screen name="HomeListing" component={HomeListing} options={{headerShown: false}}/>
+          <Stack.Screen name='HomeView2' component={() => <HomeView2WithSafeArea isConnected={isConnected} />} options={{headerShown: false}}/>
+          <Stack.Screen name='HotelsListing' component={() => <HotelsListingWithSafeArea isConnected={isConnected} />} options={{headerShown: false}}/>
+          <Stack.Screen name='ActivityDetailsView' component={ActivityDetailsView} options={{headerShown: false}}/>
+          <Stack.Screen name='FoodListing' component={FoodListing} options={{headerShown: false}}/>
+          <Stack.Screen name='FoodDetailsView' component={FoodDetailsView} options={{headerShown: false}}/>
+          <Stack.Screen name='Transport' component={Transport} options={{headerShown: false}}/>
+          <Stack.Screen name='TransportDetailsView' component={TransportDetailsView} options={{headerShown: false}}/>
+
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
   );
 };
+
+const App = () => {
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Subscribe to network state updates
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected ?? false);
+    });
+
+    // Get initial network state
+    NetInfo.fetch().then(state => {
+      setIsConnected(state.isConnected ?? false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Show nothing until we know the connection status
+  if (isConnected === null) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }} />
+      </SafeAreaProvider>
+    );
+  }
+
+  return <MainApp isConnected={isConnected} />;
+};
+
+const styles = StyleSheet.create({
+  connectionError: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: 'white',
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+});
 
 export default App;

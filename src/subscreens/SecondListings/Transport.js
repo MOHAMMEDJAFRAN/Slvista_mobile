@@ -3,39 +3,65 @@ import {
   View,
   Text,
   TouchableOpacity,
-  TextInput,
-  FlatList,
   Image,
-  Modal,
   ScrollView,
+  FlatList,
+  TextInput,
+  Modal,
   ActivityIndicator,
-  Linking,
   Dimensions,
+  RefreshControl,
   PanResponder
 } from 'react-native';
 import { MaterialIcons, Ionicons, FontAwesome, Entypo } from '@expo/vector-icons';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-
-// Configure axios base URL
+// API_BASE_URL should be defined in your .env file
 const API_BASE_URL = process.env.API_BASE_URL;
 
-// Food Filter Component
-const FoodFilter = ({
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+// Safe format function
+const formatTransportType = (typeName) => {
+  if (!typeName || typeof typeName !== 'string') {
+    return 'Transport Service';
+  }
+  
+  switch(typeName.toLowerCase()) {
+    case 'threewheelars':
+      return 'Three Wheelers';
+    case 'car':
+      return 'Car';
+    case 'bike':
+      return 'Bike';
+    case 'scooter':
+      return 'Scooter';
+    case 'tuktuk':
+      return 'Tuk-tuk';
+    default:
+      return typeName.charAt(0).toUpperCase() + typeName.slice(1);
+  }
+};
+
+// Transport Filter Component
+const TransportFilter = ({
   visible,
   onClose,
   filters,
   onFilterChange,
-  cuisineOptions,
-  locationOptions
+  availableTypes = [],
+  availableLocations = [],
+  availableFeatures = []
 }) => {
   const [panY, setPanY] = useState(0);
   const modalHeight = screenHeight * 0.85;
 
-  const featuresOptions = ['Delivery', 'Takeaway', 'Outdoor Seating', 'Vegetarian Options', 'Vegan Options', 'WiFi', 'Parking', 'Family Friendly', 'Romantic', 'Business Meetings'];
+  // Use available types, locations, and features from API
+  const typeOptions = availableTypes.length > 0 ? availableTypes : ['Car Rental', 'Taxi', 'Bus', 'Train'];
+  const locationOptions = availableLocations.length > 0 ? availableLocations : ['Colombo', 'Kandy', 'Galle'];
+  const featuresOptions = availableFeatures.length > 0 ? availableFeatures : ['24/7 Support', 'Insurance Included', 'Free Cancellation'];
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -79,9 +105,8 @@ const FoodFilter = ({
 
   const resetAllFilters = () => {
     onFilterChange({
-      priceRange: [0, 100],
       rating: 0,
-      cuisine: [],
+      type: [],
       location: [],
       features: []
     });
@@ -107,30 +132,30 @@ const FoodFilter = ({
           </View>
           
           <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-lg font-bold text-gray-800">Restaurant Filters</Text>
+            <Text className="text-lg font-bold text-gray-800">Transport Filters</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={25} color="#006D77" />
             </TouchableOpacity>
           </View>
           
           <ScrollView showsVerticalScrollIndicator={true} className="mb-2" scrollEnabled={panY === 0}>
-            {/* Cuisine Filter */}
+            {/* Type Filter */}
             <View className="mb-4">
-              <Text className="text-base font-semibold text-gray-800 mb-2">Cuisine Type</Text>
+              <Text className="text-base font-semibold text-gray-800 mb-2">Transport Type</Text>
               <View className="flex-row flex-wrap">
-                {cuisineOptions.map((cuisine) => (
+                {typeOptions.map((type) => (
                   <TouchableOpacity 
-                    key={cuisine}
+                    key={type}
                     className="flex-row items-center py-1 w-1/2"
-                    onPress={() => toggleFilter('cuisine', cuisine)}
+                    onPress={() => toggleFilter('type', type)}
                   >
                     <View className={`w-4 h-4 rounded-full border-2 mr-2 flex items-center justify-center 
-                      ${filters.cuisine.includes(cuisine) ? 'border-cyan-700 bg-cyan-700' : 'border-gray-300'}`}>
-                      {filters.cuisine.includes(cuisine) && (
+                      ${filters.type.includes(type) ? 'border-cyan-700 bg-cyan-700' : 'border-gray-300'}`}>
+                      {filters.type.includes(type) && (
                         <Ionicons name="checkmark" size={10} color="white" />
                       )}
                     </View>
-                    <Text className="text-gray-700 text-sm">{cuisine}</Text>
+                    <Text className="text-gray-700 text-sm">{type}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -139,11 +164,11 @@ const FoodFilter = ({
             {/* Location Filter */}
             <View className="mb-4">
               <Text className="text-base font-semibold text-gray-800 mb-2">Location</Text>
-              <View className="flex-row flex-wrap">
+              <View className="flex flex-wrap">
                 {locationOptions.map((location) => (
                   <TouchableOpacity 
                     key={location}
-                    className="flex-row items-center py-1 w-1/2"
+                    className="flex-row items-center py-1 w-0/3"
                     onPress={() => toggleFilter('location', location)}
                   >
                     <View className={`w-4 h-4 rounded-full border-2 mr-2 flex items-center justify-center 
@@ -221,32 +246,31 @@ const FoodFilter = ({
   );
 };
 
-export default function FoodListing() {
-  const route = useRoute();
+export default function Transport() {
   const navigation = useNavigation();
-  const { searchQuery, foodType, location } = route.params || {};
+  const route = useRoute();
+  const { searchQuery, transportType } = route.params || {};
 
-  const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [transports, setTransports] = useState([]);
+  const [filteredTransports, setFilteredTransports] = useState([]);
   const [searchInput, setSearchInput] = useState(searchQuery || '');
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [mapModalVisible, setMapModalVisible] = useState(false);
   const [selectedSort, setSelectedSort] = useState("Recommended");
-  const [filteredRestaurants, setFilteredRestaurants] = useState([]);
   const [liked, setLiked] = useState({});
   const [apiError, setApiError] = useState(null);
+  const [availableTransportTypes, setAvailableTransportTypes] = useState([]);
+  const [availableLocations, setAvailableLocations] = useState([]);
+  const [availableFeatures, setAvailableFeatures] = useState([]);
 
-  // Dynamic filter options from API data
-  const [cuisineOptions, setCuisineOptions] = useState([]);
-  const [locationOptions, setLocationOptions] = useState([]);
-
-  // Filter states
+  // Filter states - removed priceRange
   const [filters, setFilters] = useState({
-    priceRange: [0, 100],
     rating: 0,
-    cuisine: foodType ? [foodType] : [],
-    location: location ? [location] : [],
+    type: transportType ? [transportType] : [],
+    location: [],
     features: []
   });
 
@@ -254,166 +278,178 @@ export default function FoodListing() {
     "Recommended",
     "Rating: High to Low",
     "Rating: Low to High",
-    "Price: High to Low",
-    "Price: Low to High",
     "Most Reviews",
     "Distance: Nearest"
   ];
 
-  // Fetch restaurants from API
+  // Fetch transports from API
   useEffect(() => {
-    fetchRestaurants();
+    fetchTransports();
   }, []);
 
-  const fetchRestaurants = async () => {
+  const fetchTransports = async () => {
     try {
       setLoading(true);
       setApiError(null);
       
-      const response = await axios.get(`${API_BASE_URL}/api/v1/food-and-beverages`);
+      // API call to get transport agencies - Fixed API URL (removed extra 'p')
+      const response = await axios.get(`${API_BASE_URL}/api/v1/transport-agencies`);
       
       if (response.data.success) {
-        const restaurantsData = response.data.data.map(item => ({
-          id: item.id,
-          name: item.name,
-          location: item.city || item.province,
-          address: `${item.city}, ${item.province}`,
-          rating: 4.0, // Default rating since not in API
-          reviews: Math.floor(Math.random() * 200) + 50, // Random reviews for demo
-          priceRange: getRandomPriceRange(),
-          cuisine: [item.cuisineType].filter(Boolean),
-          features: getRandomFeatures(),
-          phone: item.phone,
-          email: item.email,
-          website: item.website,
-          description: item.description || 'No description available',
-          images: item.images && item.images.length > 0 
-            ? item.images.map(img => img.imageUrl)
-            : ['https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop'],
-          isPopular: Math.random() > 0.7,
-          distance: `${(Math.random() * 5).toFixed(1)} km`,
-          deliveryTime: `${Math.floor(Math.random() * 30) + 20}-${Math.floor(Math.random() * 30) + 40} min`,
-          isActive: item.isActive,
-          vistaVerified: item.vistaVerified,
-          slug: item.slug,
-          createdAt: item.createdAt,
-          updatedAt: item.updatedAt
-        }));
+        // Transform API data to match your component structure with safety checks
+        const transformedTransports = response.data.data.map(agency => {
+          // Get individual transport types for this agency with safety checks
+          const transportTypes = (agency.transportTypes || [])
+            .map(type => {
+              const typeName = typeof type === 'string' ? type : (type?.name || 'Transport Service');
+              return formatTransportType(typeName);
+            })
+            .filter(type => type && type.trim() !== ''); // Remove empty types
 
-        setRestaurants(restaurantsData);
+          // Ensure we have at least one transport type
+          const safeTransportTypes = transportTypes.length > 0 ? transportTypes : ['Transport Service'];
+
+          return {
+            id: agency.id,
+            name: agency.title || 'Transport Service',
+            transportTypes: safeTransportTypes,
+            type: safeTransportTypes.join(', '),
+            // Removed price field
+            rating: parseFloat((Math.random() * 1 + 4).toFixed(1)), // Keep rating for display
+            reviews: Math.floor(Math.random() * 100) + 50,
+            images: agency.images && agency.images.length > 0 
+              ? agency.images.map(img => img.imageUrl)
+              : ['https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400&h=300&fit=crop'],
+            features: ['24/7 Support', 'Insurance Included', 'Free Cancellation'], // Default features
+            location: agency.city || agency.district || 'Unknown Location',
+            address: agency.address || 'Address not available',
+            distance: `${(Math.random() * 10).toFixed(1)} km`,
+            available: agency.isActive !== false,
+            description: agency.description || 'Professional transport service',
+            phone: agency.phone,
+            email: agency.email,
+            website: agency.website,
+            isPopular: Math.random() > 0.5,
+            serviceArea: agency.serviceArea,
+            vistaVerified: agency.vistaVerified || false
+          };
+        });
         
-        // Extract unique cuisine types and locations for filters
-        const uniqueCuisines = [...new Set(
-          response.data.data
-            .map(item => item.cuisineType)
-            .filter(type => type && type.trim() !== "")
-        )].sort();
-
-        const uniqueLocations = [...new Set(
-          response.data.data
-            .map(item => item.city)
-            .filter(city => city && city.trim() !== "")
-        )].sort();
-
-        setCuisineOptions(uniqueCuisines);
-        setLocationOptions(uniqueLocations);
+        setTransports(transformedTransports);
         
+        // Extract all unique data from all agencies for filters
+        const allTypes = [...new Set(
+          transformedTransports.flatMap(transport => transport.transportTypes || [])
+        )].sort();
+        
+        const allLocations = [...new Set(
+          transformedTransports.map(transport => transport.location).filter(location => location && location !== 'Unknown Location')
+        )].sort();
+        
+        const allFeatures = [...new Set(
+          transformedTransports.flatMap(transport => transport.features || [])
+        )].sort();
+        
+        setAvailableTransportTypes(allTypes);
+        setAvailableLocations(allLocations);
+        setAvailableFeatures(allFeatures);
       } else {
-        setApiError("Failed to fetch restaurants from server");
+        setApiError("Failed to fetch transports from server");
       }
     } catch (err) {
-      console.error("Error fetching restaurants:", err);
-      setApiError("Failed to load restaurants. Please check your connection and try again.");
-      setRestaurants([]); // Clear restaurants on error
+      console.error("API Error:", err);
+      let errorMessage = "Failed to load transports. Please try again.";
+      
+      if (err.response) {
+        // Server responded with error status
+        errorMessage = `Server error: ${err.response.status}. Please try again.`;
+      } else if (err.request) {
+        // Request was made but no response received
+        errorMessage = "Network error. Please check your connection and try again.";
+      } else {
+        // Something else happened
+        errorMessage = "An unexpected error occurred. Please try again.";
+      }
+      
+      setApiError(errorMessage);
+      setTransports([]); // Clear any previous data
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper functions for mock data
-  const getRandomPriceRange = () => {
-    const ranges = ['$', '$$', '$$$'];
-    return ranges[Math.floor(Math.random() * ranges.length)];
-  };
-
-  const getRandomFeatures = () => {
-    const allFeatures = ['Delivery', 'Takeaway', 'Outdoor Seating', 'Vegetarian Options', 'WiFi', 'Parking'];
-    return allFeatures.slice(0, Math.floor(Math.random() * 3) + 2);
-  };
-
-  // Enhanced filtering with API data
+  // Enhanced filtering with individual transport types
   useEffect(() => {
     if (loading) return;
     
-    let results = restaurants;
+    let results = transports;
     
-    // Filter by search input (restaurant name, cuisine, or location)
+    // Filter by search input (transport name, type, or location)
     if (searchInput) {
       const searchTerm = searchInput.toLowerCase();
-      results = results.filter(restaurant => 
-        restaurant.name?.toLowerCase().includes(searchTerm) ||
-        restaurant.cuisine?.some(cuisine => 
-          cuisine.toLowerCase().includes(searchTerm)
-        ) ||
-        restaurant.location?.toLowerCase().includes(searchTerm) ||
-        restaurant.address?.toLowerCase().includes(searchTerm) ||
-        restaurant.description?.toLowerCase().includes(searchTerm)
-      );
+      results = results.filter(transport => {
+        const name = (transport.name || '').toLowerCase();
+        const type = (transport.type || '').toLowerCase();
+        const location = (transport.location || '').toLowerCase();
+        const address = (transport.address || '').toLowerCase();
+        const description = (transport.description || '').toLowerCase();
+        
+        return (
+          name.includes(searchTerm) ||
+          type.includes(searchTerm) ||
+          location.includes(searchTerm) ||
+          address.includes(searchTerm) ||
+          description.includes(searchTerm)
+        );
+      });
     }
     
-    // Filter by cuisine if selected
-    if (filters.cuisine.length > 0) {
-      results = results.filter(restaurant => 
-        filters.cuisine.some(cuisine => 
-          restaurant.cuisine?.map(c => c.toLowerCase()).includes(cuisine.toLowerCase())
+    // Filter by individual transport types if selected
+    if (filters.type.length > 0) {
+      results = results.filter(transport => 
+        filters.type.some(selectedType => 
+          (transport.transportTypes || []).some(transportType => 
+            (transportType || '').toLowerCase().includes((selectedType || '').toLowerCase())
+          )
         )
       );
     }
     
     // Filter by location if selected
     if (filters.location.length > 0) {
-      results = results.filter(restaurant => 
+      results = results.filter(transport => 
         filters.location.some(loc => 
-          restaurant.location?.toLowerCase().includes(loc.toLowerCase()) ||
-          restaurant.address?.toLowerCase().includes(loc.toLowerCase())
+          (transport.location || '').toLowerCase().includes((loc || '').toLowerCase())
         )
       );
     }
     
     // Filter by features if selected
     if (filters.features.length > 0) {
-      results = results.filter(restaurant => 
+      results = results.filter(transport => 
         filters.features.some(feature => 
-          restaurant.features?.map(f => f.toLowerCase()).includes(feature.toLowerCase())
+          (transport.features || []).map(f => (f || '').toLowerCase()).includes((feature || '').toLowerCase())
         )
       );
     }
     
     // Filter by minimum rating
     if (filters.rating > 0) {
-      results = results.filter(restaurant => 
-        restaurant.rating >= filters.rating
+      results = results.filter(transport => 
+        transport.rating >= filters.rating
       );
     }
     
-    // Filter by active status
-    results = results.filter(restaurant => restaurant.isActive);
+    // Filter by availability
+    results = results.filter(transport => transport.available !== false);
     
-    // Sort results
+    // Sort results - removed price sorting options
     switch(selectedSort) {
       case "Rating: High to Low":
         results.sort((a, b) => b.rating - a.rating);
         break;
       case "Rating: Low to High":
         results.sort((a, b) => a.rating - b.rating);
-        break;
-      case "Price: High to Low":
-        const priceOrder = { '$': 1, '$$': 2, '$$$': 3, '$$$$': 4 };
-        results.sort((a, b) => priceOrder[b.priceRange] - priceOrder[a.priceRange]);
-        break;
-      case "Price: Low to High":
-        const priceOrderLow = { '$': 1, '$$': 2, '$$$': 3, '$$$$': 4 };
-        results.sort((a, b) => priceOrderLow[a.priceRange] - priceOrderLow[b.priceRange]);
         break;
       case "Most Reviews":
         results.sort((a, b) => b.reviews - a.reviews);
@@ -430,14 +466,23 @@ export default function FoodListing() {
         });
     }
     
-    setFilteredRestaurants(results);
-  }, [restaurants, searchInput, filters, selectedSort, loading]);
+    setFilteredTransports(results);
+  }, [transports, searchInput, filters, selectedSort, loading]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchTransports();
+    setRefreshing(false);
+  };
+
+  const retryFetch = () => {
+    fetchTransports();
+  };
 
   const resetAllFilters = () => {
     setFilters({
-      priceRange: [0, 100],
       rating: 0,
-      cuisine: [],
+      type: [],
       location: [],
       features: []
     });
@@ -447,40 +492,37 @@ export default function FoodListing() {
     setSearchInput('');
   };
 
-  const clearCuisineFilter = () => {
-    setFilters(prev => ({ ...prev, cuisine: [] }));
+  const clearTypeFilter = () => {
+    setFilters(prev => ({ ...prev, type: [] }));
   };
 
   const clearLocationFilter = () => {
     setFilters(prev => ({ ...prev, location: [] }));
   };
 
-  const handleRestaurantSelect = (restaurant) => {
-    navigation.navigate('FoodDetailsView', {
-      restaurant
+  const handleTransportSelect = (transport) => {
+    navigation.navigate('TransportDetailsView', {
+      transport
     });
   };
 
-  const handleCall = (phoneNumber) => {
-    Linking.openURL(`tel:${phoneNumber}`);
-  };
-
-  const toggleLike = (restaurantId) => {
+  const toggleLike = (transportId) => {
     setLiked(prev => ({
       ...prev,
-      [restaurantId]: !prev[restaurantId]
+      [transportId]: !prev[transportId]
     }));
   };
 
   const renderStarRating = (rating, size = 14) => {
+    const safeRating = rating || 0;
     return (
       <View className="flex-row items-center">
         {[1, 2, 3, 4, 5].map((star) => (
           <Ionicons
             key={star}
-            name={star <= rating ? "star" : "star-outline"}
+            name={star <= safeRating ? "star" : "star-outline"}
             size={size}
-            color={star <= rating ? "#f59e0b" : "#d1d5db"}
+            color={star <= safeRating ? "#f59e0b" : "#d1d5db"}
           />
         ))}
       </View>
@@ -489,20 +531,113 @@ export default function FoodListing() {
 
   const getActiveFiltersCount = () => {
     let count = 0;
-    if (filters.cuisine.length > 0) count++;
+    if (filters.type.length > 0) count++;
     if (filters.location.length > 0) count++;
     if (filters.features.length > 0) count++;
     if (filters.rating > 0) count++;
     return count;
   };
 
-  const retryFetch = () => {
-    setApiError(null);
-    fetchRestaurants();
+  const renderTransportItem = ({ item }) => {
+    // Ensure transportTypes exists with safety check
+    const transportTypes = item.transportTypes || [item.type || 'Transport Service'];
+    
+    return (
+      <TouchableOpacity 
+        className="mb-4 rounded-xl bg-white p-4 shadow-sm border border-gray-100"
+        onPress={() => handleTransportSelect(item)}
+      >
+        <View className="flex-row">
+          {/* Transport Image */}
+          <View className="relative">
+            <Image
+              source={{ uri: item.images?.[0] || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400&h=300&fit=crop' }}
+              className="w-28 h-28 rounded-lg"
+              resizeMode="cover"
+            />
+            
+            {item.isPopular && (
+              <View className="absolute top-1 left-1 bg-amber-500 rounded-full px-2 py-1">
+                <Text className="text-white text-xs font-bold">Popular</Text>
+              </View>
+            )}
+            {item.vistaVerified && (
+              <View className="absolute top-1 right-1 bg-green-500 rounded-full px-2 py-1">
+                <Text className="text-white text-xs font-bold">Verified</Text>
+              </View>
+            )}
+            {!item.available && (
+              <View className="absolute inset-0 bg-black/50 rounded-lg items-center justify-center">
+                <Text className="text-white font-bold text-sm">Unavailable</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Transport Info */}
+          <View className="flex-1 ml-4">
+            <View className="flex-row justify-between items-start">
+              <Text className="text-lg font-semibold text-gray-800 flex-1 mr-5 pr-5" numberOfLines={5}>
+                {item.name || 'Transport Service'}
+              </Text>
+              <TouchableOpacity 
+                className="absolute top-1 right-1 w-8 h-8 rounded-full bg-[#dfebec] items-center justify-center shadow"
+                onPress={(e) => {
+                  e.stopPropagation();
+                  toggleLike(item.id);
+                }}
+              >
+                <Ionicons
+                  name={liked[item.id] ? "heart" : "heart-outline"}
+                  size={20}
+                  color={liked[item.id] ? "red" : "#6b7280"}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Individual Transport Type Tags with safety check */}
+            <View className="flex-row flex-wrap mt-1">
+              {transportTypes.slice(0, 3).map((type, index) => (
+                <View key={index} className="bg-cyan-50 rounded-full px-2 py-1 mr-2 mb-1">
+                  <Text className="text-xs text-cyan-700 font-medium">{type}</Text>
+                </View>
+              ))}
+              {transportTypes.length > 3 && (
+                <Text className="text-xs text-gray-500">+{transportTypes.length - 3}</Text>
+              )}
+            </View>
+
+            <View className="flex-row items-center mt-1">
+              <MaterialIcons name="location-on" size={14} color="#6b7280" />
+              <Text className="ml-1 text-sm text-gray-600 flex-1" numberOfLines={5}>
+                {item.location || 'Unknown Location'} • {item.distance || '0 km'}
+              </Text>
+            </View>
+
+            <View className="flex-row items-center justify-between mt-2">
+              <View className="flex-row items-center">
+                {renderStarRating(item.rating || 0)}
+                <Text className="ml-2 text-xs text-gray-500">({item.reviews || 0})</Text>
+              </View>
+            </View>
+
+            <View className="flex-row flex-wrap mt-2">
+              {(item.features || []).slice(0, 2).map((feature, index) => (
+                <View key={index} className="bg-[#dfebec] rounded-full px-2 py-1 mr-2 mb-1">
+                  <Text className="text-xs text-gray-700">{feature}</Text>
+                </View>
+              ))}
+              {(item.features || []).length > 2 && (
+                <Text className="text-xs text-gray-500">+{(item.features || []).length - 2}</Text>
+              )}
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
   };
 
-  // Show error screen when API fails and no restaurants are loaded
-  if (apiError && restaurants.length === 0) {
+  // Show API error screen when there's an error and no data
+  if (apiError && transports.length === 0) {
     return (
       <SafeAreaView className="flex-1 bg-white justify-center items-center px-4">
         <Ionicons name="warning-outline" size={64} color="#ef4444" />
@@ -523,87 +658,6 @@ export default function FoodListing() {
     );
   }
 
-  const renderRestaurantItem = ({ item }) => (
-    <TouchableOpacity 
-      className="mb-4 rounded-xl bg-white p-4 shadow-sm border border-gray-100"
-      onPress={() => handleRestaurantSelect(item)}
-    >
-      <View className="flex-row">
-        {/* Restaurant Image */}
-        <View className="relative">
-          <Image
-            source={{ uri: item.images[0] }}
-            className="w-24 h-24 rounded-lg"
-            resizeMode="cover"
-          />
-          
-          {item.isPopular && (
-            <View className="absolute top-1 left-1 bg-amber-500 rounded-full px-2 py-1">
-              <Text className="text-white text-xs font-bold">Popular</Text>
-            </View>
-          )}
-          {item.vistaVerified && (
-            <View className="absolute top-1 right-1 bg-green-500 rounded-full px-2 py-1">
-              <Text className="text-white text-xs font-bold">Verified</Text>
-            </View>
-          )}
-          {!item.isActive && (
-            <View className="absolute inset-0 bg-black/50 rounded-lg items-center justify-center">
-              <Text className="text-white font-bold text-sm">Closed</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Restaurant Info */}
-        <View className="flex-1 ml-4">
-          <View className="flex-row justify-between items-start">
-            <Text className="text-lg font-semibold text-gray-800 flex-1 mr-2" numberOfLines={2}>
-              {item.name}
-            </Text>
-            <TouchableOpacity 
-              className="absolute top-1 right-1 w-8 h-8 rounded-full bg-[#dfebec] items-center justify-center shadow"
-              onPress={(e) => {
-                e.stopPropagation();
-                toggleLike(item.id);
-              }}
-            >
-              <Ionicons
-                name={liked[item.id] ? "heart" : "heart-outline"}
-                size={20}
-                color={liked[item.id] ? "red" : "#6b7280"}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <View className="flex-row items-center mt-1">
-            <MaterialIcons name="location-on" size={14} color="#6b7280" />
-            <Text className="ml-1 text-sm text-gray-600 flex-1" numberOfLines={1}>
-              {item.location} • {item.distance}
-            </Text>
-          </View>
-
-          <View className="flex-row items-center justify-between mt-2">
-            <View className="flex-row items-center">
-              {renderStarRating(item.rating)}
-              <Text className="ml-2 text-xs text-gray-500">({item.reviews})</Text>
-            </View>
-          </View>
-
-          <View className="flex-row flex-wrap mt-2">
-            {item.cuisine.slice(0, 2).map((cuisine, index) => (
-              <View key={index} className="bg-gray-100 rounded-full px-2 py-1 mr-2 mb-1">
-                <Text className="text-xs text-gray-700">{cuisine}</Text>
-              </View>
-            ))}
-            {item.cuisine.length > 2 && (
-              <Text className="text-xs text-gray-500">+{item.cuisine.length - 2}</Text>
-            )}
-          </View>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
       {/* Header with search bar */}
@@ -620,11 +674,14 @@ export default function FoodListing() {
             <Ionicons name="search" size={20} color="#006D77" />
             <TextInput
               className="ml-3 flex-1 text-base font-semibold text-gray-800"
-              placeholder="Search restaurants, cuisines, or locations..."
+              placeholder="Search transports, types, or locations..."
               value={searchInput}
               onChangeText={setSearchInput}
               onSubmitEditing={() => setSearchInput(searchInput.trim())}
               returnKeyType="search"
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
             />
           </View>
           {searchInput.length > 0 && (
@@ -635,14 +692,11 @@ export default function FoodListing() {
         </View>
       </View>
 
-      {/* Error Message (for partial errors when some restaurants are loaded) */}
-      {apiError && restaurants.length > 0 && (
-        <View className="bg-yellow-50 border border-yellow-200 mx-4 mt-3 p-3 rounded-lg">
+      {/* Error Message (for non-fatal errors when we have some data) */}
+      {apiError && transports.length > 0 && (
+        <View className="bg-red-50 border border-red-200 mx-4 mt-3 p-3 rounded-lg">
           <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center flex-1">
-              <Ionicons name="warning" size={20} color="#d97706" />
-              <Text className="text-yellow-700 ml-2 flex-1">{apiError}</Text>
-            </View>
+            <Text className="text-red-700 flex-1">{apiError}</Text>
             <TouchableOpacity onPress={retryFetch} className="ml-2">
               <MaterialIcons name="refresh" size={20} color="#006D77" />
             </TouchableOpacity>
@@ -651,7 +705,7 @@ export default function FoodListing() {
       )}
 
       {/* Active Filters Bar */}
-      {(filters.cuisine.length > 0 || filters.location.length > 0 || searchInput) && (
+      {(filters.type.length > 0 || filters.location.length > 0 || searchInput) && (
         <View className="bg-white px-4 py-1 border-b border-gray-200">
           {/* <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
             {searchInput && (
@@ -662,10 +716,10 @@ export default function FoodListing() {
                 </TouchableOpacity>
               </View>
             )}
-            {filters.cuisine.map((cuisine, index) => (
+            {filters.type.map((type, index) => (
               <View key={index} className="flex-row items-center bg-cyan-50 rounded-full px-3 py-1 mr-2">
-                <Text className="text-cyan-700 text-sm font-medium">{cuisine}</Text>
-                <TouchableOpacity onPress={clearCuisineFilter} className="ml-2">
+                <Text className="text-cyan-700 text-sm font-medium">{type}</Text>
+                <TouchableOpacity onPress={clearTypeFilter} className="ml-2">
                   <Ionicons name="close" size={16} color="#006D77" />
                 </TouchableOpacity>
               </View>
@@ -713,16 +767,16 @@ export default function FoodListing() {
 
       {/* Results Count */}
       <View className="px-4 py-3 bg-white mt-1">
-        <Text className="text-gray-600">{filteredRestaurants.length} restaurants found</Text>
+        <Text className="text-gray-600">{filteredTransports.length} transports found</Text>
         {searchInput && (
           <Text className="text-gray-500 text-xs mt-1">
-            Searching for "{searchInput}"
+            Searching for {searchInput}
           </Text>
         )}
-        {(filters.cuisine.length > 0 || filters.location.length > 0) && (
+        {(filters.type.length > 0 || filters.location.length > 0) && (
           <Text className="text-gray-500 text-xs mt-1">
-            {filters.cuisine.length > 0 && `${filters.cuisine.join(', ')} cuisine`}
-            {filters.cuisine.length > 0 && filters.location.length > 0 && ' • '}
+            {filters.type.length > 0 && `${filters.type.join(', ')} type`}
+            {filters.type.length > 0 && filters.location.length > 0 && ' • '}
             {filters.location.length > 0 && `in ${filters.location.join(', ')}`}
           </Text>
         )}
@@ -732,47 +786,37 @@ export default function FoodListing() {
       {loading && (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#006D77" />
-          <Text className="mt-4 text-gray-600">Loading restaurants...</Text>
+          <Text className="mt-4 text-gray-600">Loading transports from API...</Text>
         </View>
       )}
 
-      {/* Restaurants List */}
+      {/* Transports List */}
       {!loading && (
         <View className="flex-1 px-4 py-3">
-          {filteredRestaurants.length === 0 ? (
+          {filteredTransports.length === 0 ? (
             <View className="bg-white rounded-xl p-6 items-center justify-center">
               <Ionicons name="search-outline" size={48} color="#9ca3af" />
-              <Text className="text-lg font-semibold text-gray-600 mt-4">No restaurants found</Text>
+              <Text className="text-lg font-semibold text-gray-600 mt-4">No transports found</Text>
               <Text className="text-gray-500 text-center mt-2">
-                {searchInput || filters.cuisine.length > 0 || filters.location.length > 0 
+                {searchInput || filters.type.length > 0 || filters.location.length > 0 
                   ? 'Try adjusting your search criteria or filters' 
-                  : 'No restaurants available in this area'
+                  : 'No transports available in this area'
                 }
               </Text>
-              {(searchInput || filters.cuisine.length > 0 || filters.location.length > 0) && (
-                <TouchableOpacity 
-                  className="mt-4 bg-cyan-700 rounded-full px-6 py-2"
-                  onPress={() => {
-                    setSearchInput('');
-                    setFilters({
-                      priceRange: [0, 100],
-                      rating: 0,
-                      cuisine: [],
-                      location: [],
-                      features: []
-                    });
-                  }}
-                >
-                  <Text className="text-white font-semibold">Clear All</Text>
-                </TouchableOpacity>
-              )}
             </View>
           ) : (
             <FlatList
-              data={filteredRestaurants}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={renderRestaurantItem}
+              data={filteredTransports}
+              keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+              renderItem={renderTransportItem}
               showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={['#006D77']}
+                />
+              }
               ListFooterComponent={<View className="h-20" />}
             />
           )}
@@ -824,14 +868,15 @@ export default function FoodListing() {
         </View>
       </Modal>
 
-      {/* Food Filter Modal with dynamic options */}
-      <FoodFilter
+      {/* Transport Filter Modal */}
+      <TransportFilter
         visible={filterModalVisible}
         onClose={() => setFilterModalVisible(false)}
         filters={filters}
         onFilterChange={setFilters}
-        cuisineOptions={cuisineOptions}
-        locationOptions={locationOptions}
+        availableTypes={availableTransportTypes}
+        availableLocations={availableLocations}
+        availableFeatures={availableFeatures}
       />
 
       {/* Map Modal - Placeholder */}
@@ -855,9 +900,9 @@ export default function FoodListing() {
             </View>
             
             <View className="flex-1 bg-gray-200 items-center justify-center rounded-xl mb-4">
-              <Text className="text-gray-500">Restaurants map would be displayed here</Text>
+              <Text className="text-gray-500">Transports map would be displayed here</Text>
               <Text className="text-gray-400 text-sm mt-2">
-                {filteredRestaurants.length} restaurants in this area
+                {filteredTransports.length} transports in this area
               </Text>
             </View>
             
@@ -870,7 +915,6 @@ export default function FoodListing() {
           </View>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 }
